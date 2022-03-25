@@ -1,6 +1,4 @@
-from ._template import TemplateEstimator
-from ._template import TemplateClassifier
-from ._template import TemplateTransformer
+from .TrajectoryTransformer import TrajectoryTransformer
 
 from ._version import __version__
 

@@ -1,10 +1,9 @@
-import geolib
 import numpy as np
 from geolib import geohash
-from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.base import TransformerMixin
 from sklearn.utils.validation import check_array, check_is_fitted
 
-class TrajectoryTransformer(TransformerMixin, BaseEstimator):
+class TrajectoryTransformer(TransformerMixin):
     """ An example transformer that returns the element-wise square root.
 
     For more information regarding how to build your own transformer, read more
@@ -24,9 +23,6 @@ class TrajectoryTransformer(TransformerMixin, BaseEstimator):
         A value < 1 limits the length of the sub-trajectories at the maxLen quantile of the lengths
         A value >= 1 limits the length of the sub-trajectories at maxLen points
 
-    scaler : sklearn.preprocessing scaler, default=None
-        Optionally scale the normalized sub-trajectories
-
     movelet_extractor : module, default=xmeans_module
 
     distance : function, default=euclidean_optimized
@@ -40,7 +36,7 @@ class TrajectoryTransformer(TransformerMixin, BaseEstimator):
     n_features_ : int
         The number of features of the data passed to :meth:`fit`.
     """
-    def __init__(self, partitioner=geohash, precision=7, maxLen=.95, scaler=None, movelet_extractor=None, n_jobs=1):
+    def __init__(self, partitioner=geohash, precision=7, maxLen=.95, movelet_extractor=None, n_jobs=1):
         self.partitioner = partitioner
 
     def fit(self, X, y=None):
