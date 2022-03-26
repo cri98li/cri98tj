@@ -1,9 +1,10 @@
-import Geohash.geohash
+import pandas as pd
 from geolib import geohash
 import numpy as np
 
 from skltemplate.partitioners.PartitionerInterface import PartitionerInterface
 from sklearn.exceptions import *
+from tqdm.autonotebook import tqdm
 
 
 class Geohash_partitioner(PartitionerInterface):
@@ -25,9 +26,10 @@ class Geohash_partitioner(PartitionerInterface):
 
 
 
-    def __init__(self, precision=7, maxLen=.95):
+    def __init__(self, precision=7, maxLen=.95, verbose=True):
         self.precision = precision
         self.maxLen = maxLen
+        self.verbose = verbose
 
         self._tid=0
         self._class=1
@@ -40,34 +42,42 @@ class Geohash_partitioner(PartitionerInterface):
     tid, class, time, c1, c2
     """
 
-    def fit(self, X, y=None):
+    def fit(self, X):
         self._checkFormat(X)
+
+        return self
 
     """
     l'output sarà:
-    tid, class, time, c1, c2, encode
+    tid, class, time, c1, c2, geohash
     """
 
     def transform(self, X, normalize=True):
         self._checkFormat(X)
-        encodes = np.ones(X.shape[0])
 
-        for i, row in enumerate(X):
-            encodes[i] = geohash.encode(row[self._lat], row[self._lon], self.precision)
+        df = pd.DataFrame(X, columns=["tid", "class", "time", "c1", "c2"])
+
+        encodes = []
+
+        if self.verbose: print(F"Encoding {X.shape[0]} points with precision {self.precision}")
+        for i, row in enumerate(tqdm(X, disable=not self.verbose)):
+            encodes.append(geohash.encode(row[self._lat], row[self._lon], self.precision))
+
+        df["geohash"] = encodes
 
         if not normalize:
-            return np.c_(X, encodes)
+            return df.values
 
-        dizionario = dict()
+        decodes = dict()
 
-        for gh in encodes:
-            if gh not in encodes:
-                dizionario[gh] = geohash.bounds(gh).sw
+        if self.verbose: print(F"Retrieving partition boundaries")
+        for gh in tqdm(encodes, disable=not self.verbose):
+            if gh not in decodes:
+                decodes[gh] = geohash.bounds(gh)
 
-        for i, row in enumerate(X):
-            bounds = dizionario[encodes[i]]
-            X[i][self._lat] -= bounds.lat
-            X[i][self._lon] -= bounds.lon
+        if self.verbose: print(F"Normalizing the sub-trajectories")
+        df.c1 = df.c1 - df.geohash.apply(lambda x: decodes[x].sw.lat)
+        df.c2 = df.c2 - df.geohash.apply(lambda x: decodes[x].sw.lon)
 
-        return np.c_(X, encodes)
+        return df.values
 
