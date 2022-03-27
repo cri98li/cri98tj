@@ -99,7 +99,7 @@ class OPTICS_selector(SelectorInterface):
                            metric_params=self.metric_params, cluster_method=self.cluster_method, eps=self.eps,
                            xi=self.xi, predecessor_correction=self.predecessor_correction,
                            min_cluster_size=self.min_cluster_size, algorithm=self.algorithm,leaf_size=self.leaf_size,
-                           memory=self.memory)
+                           memory=self.memory, n_jobs=self.n_jobs)
 
             df_X["labels"] = clust.fit_predict(X)
 

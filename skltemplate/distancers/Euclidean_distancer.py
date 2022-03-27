@@ -1,7 +1,12 @@
+import ctypes
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing.sharedctypes import RawArray
+
 import pandas as pd
 import numpy as np
 from tqdm.autonotebook import tqdm
 from skltemplate.distancers.DistancerInterface import DistancerInterface
+from multiprocessing import Array
 
 
 class Euclidean_distancer(DistancerInterface):
@@ -19,7 +24,7 @@ class Euclidean_distancer(DistancerInterface):
         nullSum = 0
         for i in range(offset_trajectory - offset_movelet):
             if optimize:
-                if trajectory[i] == 0.0:
+                if trajectory[i] == fillna:
                     nullSum += 1
                 else:
                     nullSum = 0
@@ -59,11 +64,28 @@ class Euclidean_distancer(DistancerInterface):
 
         distances = np.zeros((df_pivot.shape[0], len(movelets)))
 
-        for i, movelet in enumerate(tqdm(movelets, disable=not self.verbose, position=1)):
-            for j, trajectory in enumerate(
-                    tqdm(df_pivot[[x for x in df_pivot.columns if x != "class"]].values, disable=not self.verbose,
-                         position=0, leave=True)):
-                best_i, best_score = self._bestFitting(trajectory, movelet)
-                distances[j, i] = best_score
+        executor = ProcessPoolExecutor(max_workers=self.n)
+
+        ndarray_pivot = df_pivot[[x for x in df_pivot.columns if x != "class"]].values
+        processes = []
+        for i, movelet in enumerate(tqdm(movelets, disable=not self.verbose, position=0)):
+            processes.append(executor.submit(self._foo, i, movelet, ndarray_pivot))
+
+        for i, process in enumerate(tqdm(processes)):
+            col = process.result()
+            for j, val in enumerate(col):
+                distances[j, i] = val
+
+        executor.shutdown(wait=True)
 
         return np.hstack((df_pivot[["class"]].values, distances))
+
+    def _foo(self,i, movelet, ndarray_pivot):
+        distances = []
+        for j, trajectory in enumerate(
+                tqdm(ndarray_pivot, disable=True,
+                     position=i+1, leave=True)):
+            best_i, best_score = self._bestFitting(trajectory, movelet)
+            distances.append(best_score)
+
+        return distances
