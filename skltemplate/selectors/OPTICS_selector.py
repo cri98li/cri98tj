@@ -1,33 +1,48 @@
+from math import inf
+
+import numpy as np
 from sklearn.exceptions import DataDimensionalityWarning
 import pandas as pd
 from tqdm.autonotebook import tqdm
-from pyclustering.cluster.xmeans import xmeans, splitting_type
+from sklearn.cluster import OPTICS
 
 from skltemplate.selectors.SelectorInterface import SelectorInterface
 
 
-class XMeans_selector(SelectorInterface):
+class OPTICS_selector(SelectorInterface):
     def _checkFormat(self, X):
         if X.shape[1] != 6:
             raise DataDimensionalityWarning(
                 "The input data must be in this form (tid, class, time, c1, c2, partitionId)")
         # Altri controlli?
 
-    def __init__(self, maxLen=.95, fillna_value=0.0, verbose=True, initial_centers=None, kmax=20, tolerance=0.001,
-                 criterion=splitting_type.BAYESIAN_INFORMATION_CRITERION, ccore=True):
-        self._xmeans_instances = None
+    def __init__(self, maxLen=.95, fillna_value=0.0, n_jobs=None, verbose=True, min_samples=5, max_eps=inf,
+                 metric='minkowski', p=2,
+                 metric_params=None, cluster_method='xi', eps=None, xi=0.05, predecessor_correction=True,
+                 min_cluster_size=None, algorithm='auto', leaf_size=30, memory=None):
         if maxLen <= 0:
             pass  # raise .....
 
         self.maxLen = maxLen
         self.fillna_value = fillna_value
         self.verbose = verbose
+        self.n_jobs = n_jobs
 
-        self.initial_centers = initial_centers
-        self.kmax = kmax
-        self.tolerance = tolerance
-        self.criterion = criterion
-        self.ccore = ccore
+        self._OPTICS_instances = {}
+
+        self.min_samples = min_samples
+        self.max_eps = max_eps
+        self.metric = metric
+        self.p = p
+        self.metric_params = metric_params
+        self.cluster_method = cluster_method
+        self.eps = eps
+        self.xi = xi
+        self.predecessor_correction = predecessor_correction
+        self.min_cluster_size = min_cluster_size
+        self.algorithm = algorithm
+        self.leaf_size = leaf_size
+        self.memory = memory
 
         self._tid = 0
         self._class = 1
@@ -74,21 +89,29 @@ class XMeans_selector(SelectorInterface):
         df_pivot.fillna(self.fillna_value, inplace=True)
 
         if self.verbose: print("Extracting clusters", flush=True)
-        centroids = {}
-        self._xmeans_instances = []
-        for classe in tqdm(df_pivot["class"].unique(), disable=not self.verbose, position=0, leave=True):
-            X = df_pivot[df_pivot["class"] == classe][[x for x in df_pivot.columns if x != "class"]].values
-            if self.verbose: print(F"Class {classe}", flush=True)
-            clust = xmeans(X, initial_centers=self.initial_centers, kmax=self.kmax, tolerance=self.tolerance,
-                           criterion=self.criterion, ccore=self.ccore)
-            clust.process()
-            self._xmeans_instances.append(clust)
-            centroids[classe] = clust.get_centers()
-
+        self._OPTICS_instances = {}
         movelets = []
-        for e in [x for x in centroids.values()]:
-            for el in e:
-                movelets.append(el)
+        for classe in tqdm(df_pivot["class"].unique(), disable=not self.verbose, position=0, leave=True):
+            df_X = df_pivot[df_pivot["class"] == classe][[x for x in df_pivot.columns if x != "class"]]
+            X = df_X.values
+            if self.verbose: print(F"Class {classe}", flush=True)
+            clust = OPTICS(min_samples=self.min_samples, max_eps=self.max_eps, metric=self.metric,p=self.p,
+                           metric_params=self.metric_params, cluster_method=self.cluster_method, eps=self.eps,
+                           xi=self.xi, predecessor_correction=self.predecessor_correction,
+                           min_cluster_size=self.min_cluster_size, algorithm=self.algorithm,leaf_size=self.leaf_size,
+                           memory=self.memory)
 
-        #return df_pivot[["class"] + [x for x in df_pivot.columns if x != "class"]].values, movelets
+            df_X["labels"] = clust.fit_predict(X)
+
+            df_X.labels = df_X.labels[df_X.labels != -1]
+
+            for row in df_X.groupby(by=["labels"]).mean().values:
+                movelets.append(list(row))
+
+
+            #centroids[classe] = clust.fit_predict()
+            self._OPTICS_instances[classe] = clust
+
+
+        #list of list
         return movelets

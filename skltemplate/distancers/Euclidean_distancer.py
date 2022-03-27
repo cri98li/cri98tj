@@ -1,5 +1,4 @@
 import pandas as pd
-from sklearn.exceptions import DataDimensionalityWarning
 import numpy as np
 from tqdm.autonotebook import tqdm
 from skltemplate.distancers.DistancerInterface import DistancerInterface
@@ -46,23 +45,25 @@ class Euclidean_distancer(DistancerInterface):
     def fit(self, trajectories_movelets):
         return self
 
-    #trajectories = tid, class, time, c1, c2
-    #restituisce nparray con pos0= cluster e poi
+    # trajectories = tid, class, time, c1, c2
+    # restituisce nparray con pos0= cluster e poi
     def transform(self, trajectories_movelets):
         trajectories, movelets = trajectories_movelets
 
         trajectories_df = pd.DataFrame(trajectories, columns=["tid", "class", "time", "c1", "c2"])
         trajectories_df["pos"] = trajectories_df.groupby(['tid']).cumcount()
-        df_pivot = df.groupby(['tid', 'pos'])['c1', 'c2'].max().unstack().reset_index()
-        df_pivot = df_pivot.merge(df.groupby(['tid'])['class'].max().reset_index(), on=["tid"])
+        df_pivot = trajectories_df.groupby(['tid', 'pos'])[['c1', 'c2']].max().unstack().reset_index()
+        df_pivot = df_pivot.merge(trajectories_df.groupby(['tid'])['class'].max().reset_index(), on=["tid"])
         df_pivot.fillna(0, inplace=True)
         df_pivot = df_pivot.drop(columns=[("tid", "")]).set_index("tid")
 
-        distances = np.zeros((trajectories.shape[0], len(movelets)))
+        distances = np.zeros((df_pivot.shape[0], len(movelets)))
 
-        for i, movelet in enumerate(tqdm(movelets)):
-            for j, trajectory in enumerate(tqdm(trajectories[:, 1:])):
+        for i, movelet in enumerate(tqdm(movelets, disable=not self.verbose, position=1)):
+            for j, trajectory in enumerate(
+                    tqdm(df_pivot[[x for x in df_pivot.columns if x != "class"]].values, disable=not self.verbose,
+                         position=0, leave=True)):
                 best_i, best_score = self._bestFitting(trajectory, movelet)
                 distances[j, i] = best_score
 
-        return np.hstack((trajectories[:, 0].reshape((trajectories.shape[0], 1)), distances))
+        return np.hstack((df_pivot[["class"]].values, distances))
