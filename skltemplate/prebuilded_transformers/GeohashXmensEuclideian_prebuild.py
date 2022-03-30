@@ -10,7 +10,7 @@ from skltemplate.distancers.Euclidean_distancer import Euclidean_distancer
 
 class gxe_prebuild(TrajectoryTransformer):
 
-    def __init__(self, precision=7, maxLen=.95, normalize=True, scale=True, fillna_value=0.0, optimize=True, verbose=True, initial_centers=None, kmax=20, tolerance=0.001,
+    def __init__(self, precision=7, maxLen=.95, normalize=True, scale=True, fillna_value=None, verbose=True, initial_centers=None, kmax=20, tolerance=0.001,
                  criterion=splitting_type.BAYESIAN_INFORMATION_CRITERION, ccore=True):
         self.verbose = verbose
 

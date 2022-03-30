@@ -4,6 +4,7 @@ from tqdm.autonotebook import tqdm
 from sklearn.cluster import OPTICS
 
 from skltemplate.selectors.SelectorInterface import SelectorInterface
+from skltemplate.selectors.selector_utils import dataframe_pivot
 
 
 class Random_selector(SelectorInterface):
@@ -13,7 +14,7 @@ class Random_selector(SelectorInterface):
                 "The input data must be in this form (tid, class, time, c1, c2, partitionId)")
         # Altri controlli?
 
-    def __init__(self, movelets_per_class=10, maxLen=.95, fillna_value=0.0, n_jobs=None, verbose=True):
+    def __init__(self, movelets_per_class=10, maxLen=.95, fillna_value=None, n_jobs=None, verbose=True):
 
         self.maxLen = maxLen
         self.fillna_value = fillna_value
@@ -47,26 +48,11 @@ class Random_selector(SelectorInterface):
         self._checkFormat(X)
 
         df = pd.DataFrame(X, columns=["tid", "class", "time", "c1", "c2", "partId"])
-
-        df["pos"] = df.groupby(['tid', 'partId']).cumcount()
-
-        if self.maxLen is not None:
-            if self.maxLen >= 1:
-                if self.verbose: print(F"Cutting sub-trajectories length at {self.maxLen}", flush=True)
-                df = df[df.pos < self.maxLen]
-            else:
-                if self.verbose: print(F"Cutting sub-trajectories length at {df.quantile(.95).pos}", flush=True)
-                df = df[df.pos < df.quantile(.95).pos]
-
-        if self.verbose: print("Pivoting tables", flush=True)
-        df_pivot = df.groupby(['tid', 'pos'])[['c1', 'c2']].max().unstack().reset_index()
-        df_pivot = df_pivot.merge(df.groupby(['tid'])['class'].max().reset_index(), on=["tid"])
-        df_pivot = df_pivot.drop(columns=[("tid", "")]).set_index("tid")
-
-        df_pivot.fillna(self.fillna_value, inplace=True)
+        df_pivot = dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value)
 
         #df_movelets = df_pivot.groupby('class', group_keys=False).apply(lambda x: x.sample(min(len(x), self.n_movelets))).drop(columns=["occupied"]).values
 
 
         #list of list
-        return df_pivot.groupby('class', group_keys=False).apply(lambda x: x.sample(min(len(x), self.n_movelets))).drop(columns=["class"]).values
+        return df_pivot.groupby('class', group_keys=False)\
+            .apply(lambda x: x.sample(min(len(x), self.n_movelets))).drop(columns=["class"]).values
