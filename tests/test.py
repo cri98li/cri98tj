@@ -4,17 +4,17 @@ from random import random
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from skltemplate.distancers.Euclidean_distancer import Euclidean_distancer
-from skltemplate.partitioners.Geohash_partitioner import Geohash_partitioner
-from skltemplate.selectors.OPTICS_selector import OPTICS_selector
-from skltemplate.selectors.RandomInformationGain_selector import RandomInformationGain_selector
-from skltemplate.selectors.Random_selector import Random_selector
-from skltemplate.selectors.RandomOrderline_selector import RandomOrderline_selector
-from skltemplate.prebuilded_transformers.GeohashXmensEuclideian_prebuild import gxe_prebuild
-from skltemplate.TrajectoryTransformer import TrajectoryTransformer
+from cri98tj.distancers.Euclidean_distancer import Euclidean_distancer
+from cri98tj.partitioners.Geohash_partitioner import Geohash_partitioner
+from cri98tj.selectors.OPTICS_selector import OPTICS_selector
+from cri98tj.selectors.RandomInformationGain_selector import RandomInformationGain_selector
+from cri98tj.selectors.Random_selector import Random_selector
+from cri98tj.selectors.RandomOrderline_selector import RandomOrderline_selector
+from cri98tj.prebuilded_transformers.GeohashXmensEuclideian_prebuild import gxe_prebuild
+from cri98tj.TrajectoryTransformer import TrajectoryTransformer
 from sklearn.ensemble import RandomForestClassifier
 
-from skltemplate.selectors.XMeans_selector import XMeans_selector
+from cri98tj.selectors.XMeans_selector import XMeans_selector
 
 if __name__ == '__main__':
     df = pd.read_csv(
