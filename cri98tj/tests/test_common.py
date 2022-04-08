@@ -1,9 +1,8 @@
 import pytest
-
 from sklearn.utils.estimator_checks import check_estimator
 
-from cri98tj import TemplateEstimator
 from cri98tj import TemplateClassifier
+from cri98tj import TemplateEstimator
 from cri98tj import TemplateTransformer
 
 

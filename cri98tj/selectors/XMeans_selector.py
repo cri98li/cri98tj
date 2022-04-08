@@ -1,20 +1,16 @@
-from sklearn.exceptions import DataDimensionalityWarning
 import pandas as pd
-from tqdm.autonotebook import tqdm
 from pyclustering.cluster.xmeans import xmeans, splitting_type
+from sklearn.exceptions import DataDimensionalityWarning
+from tqdm.autonotebook import tqdm
 
 from cri98tj.selectors.SelectorInterface import SelectorInterface
 from cri98tj.selectors.selector_utils import dataframe_pivot
 
 
 class XMeans_selector(SelectorInterface):
-    def _checkFormat(self, X):
-        if X.shape[1] != 6:
-            raise DataDimensionalityWarning(
-                "The input data must be in this form (tid, class, time, c1, c2, partitionId)")
-        # Altri controlli?
 
-    def __init__(self, maxLen=.95, fillna_value=None, verbose=True, initial_centers=None, kmax=20, tolerance=0.001,
+    def __init__(self, maxLen=.95, spatioTemporalColumns=["c1", "c2"], fillna_value=None, verbose=True,
+                 initial_centers=None, kmax=20, tolerance=0.001,
                  criterion=splitting_type.BAYESIAN_INFORMATION_CRITERION, ccore=True):
         self._xmeans_instances = None
         if maxLen <= 0:
@@ -23,6 +19,7 @@ class XMeans_selector(SelectorInterface):
         self.maxLen = maxLen
         self.fillna_value = fillna_value
         self.verbose = verbose
+        self.spatioTemporalColumns = spatioTemporalColumns
 
         self.initial_centers = initial_centers
         self.kmax = kmax
@@ -30,21 +27,12 @@ class XMeans_selector(SelectorInterface):
         self.criterion = criterion
         self.ccore = ccore
 
-        self._tid = 0
-        self._class = 1
-        self._time = 2
-        self._lat = 3
-        self._lon = 4
-        self._partitionId = 5
-
     """
     Controllo il formato dei dati, l'ordine deve essere: 
     tid, class, time, c1, c2
     """
 
     def fit(self, X):
-        self._checkFormat(X)
-
         return self
 
     """
@@ -53,10 +41,7 @@ class XMeans_selector(SelectorInterface):
     """
 
     def transform(self, X):
-        self._checkFormat(X)
-
-        df = pd.DataFrame(X, columns=["tid", "class", "time", "c1", "c2", "partId"])
-        df_pivot = dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value)
+        df_pivot = pd.DataFrame(X).rename(columns={0: "class"})
 
         if self.verbose: print("Extracting clusters", flush=True)
         centroids = {}

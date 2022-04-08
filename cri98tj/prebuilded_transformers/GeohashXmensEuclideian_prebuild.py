@@ -1,11 +1,10 @@
+import pandas as pd
 from pyclustering.cluster.xmeans import splitting_type
 
-import pandas as pd
-
 from cri98tj import TrajectoryTransformer
+from cri98tj.distancers.Euclidean_distancer import Euclidean_distancer
 from cri98tj.partitioners.Geohash_partitioner import Geohash_partitioner
 from cri98tj.selectors.XMeans_selector import XMeans_selector
-from cri98tj.distancers.Euclidean_distancer import Euclidean_distancer
 
 
 class gxe_prebuild(TrajectoryTransformer):

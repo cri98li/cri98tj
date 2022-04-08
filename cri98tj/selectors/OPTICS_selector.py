@@ -1,13 +1,12 @@
 from math import inf
 
-import numpy as np
-from sklearn.exceptions import DataDimensionalityWarning
 import pandas as pd
-from tqdm.autonotebook import tqdm
 from sklearn.cluster import OPTICS
-from cri98tj.selectors.selector_utils import dataframe_pivot
+from sklearn.exceptions import DataDimensionalityWarning
+from tqdm.autonotebook import tqdm
 
 from cri98tj.selectors.SelectorInterface import SelectorInterface
+from cri98tj.selectors.selector_utils import dataframe_pivot
 
 
 class OPTICS_selector(SelectorInterface):
@@ -17,15 +16,12 @@ class OPTICS_selector(SelectorInterface):
                 "The input data must be in this form (tid, class, time, c1, c2, partitionId)")
         # Altri controlli?
 
-    def __init__(self, maxLen=.95, fillna_value=None, n_jobs=None, verbose=True, min_samples=5, max_eps=inf,
+    def __init__(self, normalizer, n_jobs=None, verbose=True, min_samples=5, max_eps=inf,
                  metric='minkowski', p=2,
                  metric_params=None, cluster_method='xi', eps=None, xi=0.05, predecessor_correction=True,
                  min_cluster_size=None, algorithm='auto', leaf_size=30, memory=None):
-        if maxLen <= 0:
-            pass  # raise .....
 
-        self.maxLen = maxLen
-        self.fillna_value = fillna_value
+        self.normalizer = normalizer
         self.verbose = verbose
         self.n_jobs = n_jobs
 
@@ -70,9 +66,10 @@ class OPTICS_selector(SelectorInterface):
     def transform(self, X):
         self._checkFormat(X)
 
-        df = pd.DataFrame(X, columns=["tid", "class", "time", "c1", "c2", "partId"])
+        #df = pd.DataFrame(X, columns=["tid", "class"]+self.spatioTemporalColumns+["partId"])
 
-        df_pivot = dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value)
+        df_pivot = self.normalizer(X)
+        #dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value, columns=self.spatioTemporalColumns)
 
         if self.verbose: print("Extracting clusters", flush=True)
         self._OPTICS_instances = {}

@@ -1,10 +1,8 @@
 from concurrent.futures import ProcessPoolExecutor
-from math import inf
 
-from sklearn.exceptions import DataDimensionalityWarning, NotFittedError
 import pandas as pd
+from sklearn.exceptions import DataDimensionalityWarning
 from tqdm.autonotebook import tqdm
-from sklearn.cluster import OPTICS
 
 from cri98tj.selectors.SelectorInterface import SelectorInterface
 from cri98tj.selectors.selector_utils import dataframe_pivot, maxInformationGainScore
@@ -17,8 +15,8 @@ class RandomInformationGain_selector(SelectorInterface):
                 "The input data must be in this form (tid, class, time, c1, c2, partitionId)")
         # Altri controlli?
 
-    def __init__(self, top_k=10, movelets_per_class=100, trajectories_for_orderline=.10, maxLen=.95, fillna_value=None,
-                 n_jobs=1, verbose=True):
+    def __init__(self, top_k=10, movelets_per_class=100, trajectories_for_orderline=.10, maxLen=.95,
+                 spatioTemporalColumns=["c1", "c2"], fillna_value=None, n_jobs=1, verbose=True):
         self.maxLen = maxLen
         self.fillna_value = fillna_value
         self.verbose = verbose
@@ -26,6 +24,7 @@ class RandomInformationGain_selector(SelectorInterface):
         self.n_movelets = movelets_per_class
         self.n_trajectories = trajectories_for_orderline
         self.top_k = top_k
+        self.spatioTemporalColumns = spatioTemporalColumns
 
         self._fitted = False
 
@@ -54,8 +53,9 @@ class RandomInformationGain_selector(SelectorInterface):
     def transform(self, X):
         self._checkFormat(X)
 
-        df = pd.DataFrame(X, columns=["tid", "class", "time", "c1", "c2", "partId"])
-        df_pivot = dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value)
+        df = pd.DataFrame(X, columns=["tid", "class"]+self.spatioTemporalColumns+["partId"])
+        df_pivot = dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value,
+                                   columns=self.spatioTemporalColumns)
         if self.n_movelets is None:
             self.n_movelets = len(df_pivot)  # upper bound
         elif self.n_movelets < 1:
@@ -82,7 +82,7 @@ class RandomInformationGain_selector(SelectorInterface):
         processes = []
         for movelet in tqdm(movelets_to_test, disable=not self.verbose, position=0, leave=True):
             processes.append(executor.submit(maxInformationGainScore, trajectories_for_orderline, movelet,
-                                             y_trajectories_for_orderline, None))
+                                             y_trajectories_for_orderline, None, self.spatioTemporalColumns))
             # scores.append(orderlineScore_leftPure(movelet=movelet, trajectories=trajectories_for_orderline,
             # y_trajectories=y_trajectories_for_orderline))
 

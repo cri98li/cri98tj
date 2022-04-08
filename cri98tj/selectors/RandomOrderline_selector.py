@@ -1,10 +1,8 @@
 from concurrent.futures import ProcessPoolExecutor
-from math import inf
 
-from sklearn.exceptions import DataDimensionalityWarning, NotFittedError
 import pandas as pd
+from sklearn.exceptions import DataDimensionalityWarning
 from tqdm.autonotebook import tqdm
-from sklearn.cluster import OPTICS
 
 from cri98tj.selectors.SelectorInterface import SelectorInterface
 from cri98tj.selectors.selector_utils import dataframe_pivot, orderlineScore_leftPure
@@ -17,7 +15,8 @@ class RandomOrderline_selector(SelectorInterface):
                 "The input data must be in this form (tid, class, time, c1, c2, partitionId)")
         # Altri controlli?
 
-    def __init__(self, top_k=10, movelets_per_class=100, trajectories_for_orderline=.10, maxLen=.95, fillna_value=None, n_jobs=1, verbose=True):
+    def __init__(self, top_k=10, movelets_per_class=100, trajectories_for_orderline=.10, maxLen=.95,
+                 spatioTemporalColumns=["c1", "c2"], fillna_value=None, n_jobs=1, verbose=True):
         self.maxLen = maxLen
         self.fillna_value = fillna_value
         self.verbose = verbose
@@ -25,6 +24,7 @@ class RandomOrderline_selector(SelectorInterface):
         self.n_movelets = movelets_per_class
         self.n_trajectories = trajectories_for_orderline
         self.top_k = top_k
+        self.spatioTemporalColumns = spatioTemporalColumns
 
         self._fitted = False
 
@@ -41,7 +41,6 @@ class RandomOrderline_selector(SelectorInterface):
     """
 
     def fit(self, X):
-        self._checkFormat(X)
 
         return self
 
@@ -51,10 +50,9 @@ class RandomOrderline_selector(SelectorInterface):
     """
 
     def transform(self, X):
-        self._checkFormat(X)
 
-        df = pd.DataFrame(X, columns=["tid", "class", "time", "c1", "c2", "partId"])
-        df_pivot = dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value)
+        df_pivot = pd.DataFrame(X).rename(columns={0: "class"})
+
         if self.n_movelets is None:
             self.n_movelets = len(df_pivot)
         elif self.n_movelets < 1:
@@ -63,10 +61,6 @@ class RandomOrderline_selector(SelectorInterface):
         movelets_to_test = df_pivot.groupby('class', group_keys=False).apply(
             lambda x: x.sample(min(len(x), self.n_movelets))).drop(columns=["class"]).values
 
-
-
-
-        df_pivot = dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value)
         if self.n_trajectories is None:
             self.n_trajectories = len(df_pivot)
         elif self.n_trajectories < 1:
@@ -83,7 +77,7 @@ class RandomOrderline_selector(SelectorInterface):
         executor = ProcessPoolExecutor(max_workers=self.n_jobs)
         processes = []
         for movelet in tqdm(movelets_to_test, disable=not self.verbose, position=0, leave=True):
-            processes.append(executor.submit(orderlineScore_leftPure, trajectories_for_orderline, movelet, y_trajectories_for_orderline, None))
+            processes.append(executor.submit(orderlineScore_leftPure, trajectories_for_orderline, movelet, y_trajectories_for_orderline, None, self.spatioTemporalColumns))
             #scores.append(orderlineScore_leftPure(movelet=movelet, trajectories=trajectories_for_orderline,
                                                   #y_trajectories=y_trajectories_for_orderline))
 

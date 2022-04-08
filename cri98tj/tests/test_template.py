@@ -1,13 +1,12 @@
-import pytest
 import numpy as np
-
-from sklearn.datasets import load_iris
-from numpy.testing import assert_array_equal
+import pytest
 from numpy.testing import assert_allclose
+from numpy.testing import assert_array_equal
+from sklearn.datasets import load_iris
 
+from cri98tj import TemplateClassifier
 from cri98tj import TemplateEstimator
 from cri98tj import TemplateTransformer
-from cri98tj import TemplateClassifier
 
 
 @pytest.fixture

@@ -1,21 +1,20 @@
-import ctypes
 from concurrent.futures import ProcessPoolExecutor
-from cri98tj.distancers.distancer_utils import euclideanBestFitting
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from tqdm.autonotebook import tqdm
-from cri98tj.distancers.DistancerInterface import DistancerInterface
-from multiprocessing import Array
 
+from cri98tj.distancers.DistancerInterface import DistancerInterface
+from cri98tj.distancers.distancer_utils import euclideanBestFitting
 from cri98tj.selectors.selector_utils import dataframe_pivot
 
 
 class Euclidean_distancer(DistancerInterface):
 
-    def __init__(self, n_jobs=1, optimize=True, verbose=True):
+    def __init__(self, n_jobs=1, optimize=True, spatioTemporalColumns=["c1", "c2"], verbose=True):
         self.verbose = verbose
         self.optimize = optimize
+        self.spatioTemporalColumns = spatioTemporalColumns
         self.n_jobs = n_jobs
 
     def fit(self, trajectories_movelets):
@@ -26,9 +25,9 @@ class Euclidean_distancer(DistancerInterface):
     def transform(self, trajectories_movelets):
         trajectories, movelets = trajectories_movelets
 
-        trajectories_df = pd.DataFrame(trajectories, columns=["tid", "class", "time", "c1", "c2"])
+        trajectories_df = pd.DataFrame(trajectories, columns=["tid", "class"]+self.spatioTemporalColumns)
         trajectories_df["partId"] = trajectories_df.tid
-        df_pivot = dataframe_pivot(df=trajectories_df, maxLen=None, verbose=self.verbose, fillna_value=None)
+        df_pivot = dataframe_pivot(df=trajectories_df, maxLen=None, verbose=self.verbose, fillna_value=None, columns=self.spatioTemporalColumns)
 
         distances = np.zeros((df_pivot.shape[0], len(movelets)))
 
@@ -37,7 +36,7 @@ class Euclidean_distancer(DistancerInterface):
         ndarray_pivot = df_pivot[[x for x in df_pivot.columns if x != "class"]].values
         processes = []
         for i, movelet in enumerate(tqdm(movelets, disable=not self.verbose, position=0)):
-            processes.append(executor.submit(self._foo, i, movelet, ndarray_pivot))
+            processes.append(executor.submit(self._foo, i, movelet, ndarray_pivot, self.spatioTemporalColumns))
 
         if self.verbose: print(f"Collecting distances from {len(processes)}")
         for i, process in enumerate(tqdm(processes)):
@@ -52,12 +51,11 @@ class Euclidean_distancer(DistancerInterface):
 
         return np.hstack((df_pivot[["class"]].values, distances))
 
-    def _foo(self,i, movelet, ndarray_pivot):
+    def _foo(self,i, movelet, ndarray_pivot, spatioTemporalColumns):
         distances = []
-        for j, trajectory in enumerate(
-                tqdm(ndarray_pivot, disable=True,
-                     position=i+1, leave=True)):
-            best_i, best_score = euclideanBestFitting(trajectory=trajectory, movelet=movelet)
+        for j, trajectory in enumerate( tqdm(ndarray_pivot, disable=True, position=i+1, leave=True)):
+            best_i, best_score = euclideanBestFitting(trajectory=trajectory, movelet=movelet,
+                                                      spatioTemporalColumns=spatioTemporalColumns)
             distances.append(best_score)
 
         return distances
