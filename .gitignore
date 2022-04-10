@@ -68,3 +68,6 @@ target/
 
 #idea stuff
 .idea/*
+datasets/taxi/train_denorm_tutto.zip
+datasets/taxi/train_denorm_tutto.zip
+datasets/taxi/train_denorm_tutto.zip
