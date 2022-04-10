@@ -5,7 +5,7 @@ from sklearn.exceptions import DataDimensionalityWarning
 from tqdm.autonotebook import tqdm
 
 from cri98tj.selectors.SelectorInterface import SelectorInterface
-from cri98tj.selectors.selector_utils import dataframe_pivot, orderlineScore_leftPure
+from cri98tj.selectors.selector_utils import orderlineScore_leftPure
 
 
 class RandomOrderline_selector(SelectorInterface):
@@ -15,16 +15,14 @@ class RandomOrderline_selector(SelectorInterface):
                 "The input data must be in this form (tid, class, time, c1, c2, partitionId)")
         # Altri controlli?
 
-    def __init__(self, top_k=10, movelets_per_class=100, trajectories_for_orderline=.10, maxLen=.95,
-                 spatioTemporalColumns=["c1", "c2"], fillna_value=None, n_jobs=1, verbose=True):
-        self.maxLen = maxLen
-        self.fillna_value = fillna_value
+    def __init__(self, normalizer, spatioTemporalColumns=[], top_k=10, movelets_per_class=100, trajectories_for_orderline=.10, n_jobs=1, verbose=True):
+        self.normalizer = normalizer
         self.verbose = verbose
         self.n_jobs = n_jobs
         self.n_movelets = movelets_per_class
         self.n_trajectories = trajectories_for_orderline
-        self.top_k = top_k
         self.spatioTemporalColumns = spatioTemporalColumns
+        self.top_k = top_k
 
         self._fitted = False
 
@@ -50,16 +48,18 @@ class RandomOrderline_selector(SelectorInterface):
     """
 
     def transform(self, X):
-
-        df_pivot = pd.DataFrame(X).rename(columns={0: "class"})
+        df = pd.DataFrame(X, columns=["tid", "class"]+self.spatioTemporalColumns+["partId"])
+        df_pivot = pd.DataFrame(self.normalizer.fit_transform(X)).rename(columns={0: "class"})
 
         if self.n_movelets is None:
             self.n_movelets = len(df_pivot)
         elif self.n_movelets < 1:
             self.n_movelets = round(self.n_movelets*len(df_pivot))
+        movelets_to_test = df_pivot.groupby('class', group_keys=False)\
+            .apply(lambda x: x.sample(min(len(x), self.n_movelets))).drop(columns=["class"]).values
+
         df.partId = df.tid
-        movelets_to_test = df_pivot.groupby('class', group_keys=False).apply(
-            lambda x: x.sample(min(len(x), self.n_movelets))).drop(columns=["class"]).values
+        df_pivot = pd.DataFrame(self.normalizer.fit_transform(X)).rename(columns={0: "class"})
 
         if self.n_trajectories is None:
             self.n_trajectories = len(df_pivot)

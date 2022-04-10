@@ -6,7 +6,7 @@ from tqdm.autonotebook import tqdm
 
 from cri98tj.distancers.DistancerInterface import DistancerInterface
 from cri98tj.distancers.distancer_utils import euclideanBestFitting
-from cri98tj.selectors.selector_utils import dataframe_pivot
+from cri98tj.normalizers.normalizer_utils import dataframe_pivot
 
 
 class Euclidean_distancer(DistancerInterface):

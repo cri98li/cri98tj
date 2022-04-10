@@ -1,25 +1,19 @@
 import pandas as pd
 from pyclustering.cluster.xmeans import xmeans, splitting_type
-from sklearn.exceptions import DataDimensionalityWarning
 from tqdm.autonotebook import tqdm
 
 from cri98tj.selectors.SelectorInterface import SelectorInterface
-from cri98tj.selectors.selector_utils import dataframe_pivot
 
 
 class XMeans_selector(SelectorInterface):
 
-    def __init__(self, maxLen=.95, spatioTemporalColumns=["c1", "c2"], fillna_value=None, verbose=True,
+    def __init__(self, normalizer, verbose=True,
                  initial_centers=None, kmax=20, tolerance=0.001,
                  criterion=splitting_type.BAYESIAN_INFORMATION_CRITERION, ccore=True):
         self._xmeans_instances = None
-        if maxLen <= 0:
-            pass  # raise .....
 
-        self.maxLen = maxLen
-        self.fillna_value = fillna_value
+        self.normalizer = normalizer
         self.verbose = verbose
-        self.spatioTemporalColumns = spatioTemporalColumns
 
         self.initial_centers = initial_centers
         self.kmax = kmax
@@ -41,7 +35,7 @@ class XMeans_selector(SelectorInterface):
     """
 
     def transform(self, X):
-        df_pivot = pd.DataFrame(X).rename(columns={0: "class"})
+        df_pivot = pd.DataFrame(self.normalizer.fit_transform(X)).rename(columns={0: "class"})
 
         if self.verbose: print("Extracting clusters", flush=True)
         centroids = {}
@@ -60,5 +54,5 @@ class XMeans_selector(SelectorInterface):
             for el in e:
                 movelets.append(el)
 
-        #return df_pivot[["class"] + [x for x in df_pivot.columns if x != "class"]].values, movelets
+        # return df_pivot[["class"] + [x for x in df_pivot.columns if x != "class"]].values, movelets
         return movelets

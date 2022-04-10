@@ -6,7 +6,6 @@ from sklearn.exceptions import DataDimensionalityWarning
 from tqdm.autonotebook import tqdm
 
 from cri98tj.selectors.SelectorInterface import SelectorInterface
-from cri98tj.selectors.selector_utils import dataframe_pivot
 
 
 class OPTICS_selector(SelectorInterface):
@@ -68,7 +67,7 @@ class OPTICS_selector(SelectorInterface):
 
         #df = pd.DataFrame(X, columns=["tid", "class"]+self.spatioTemporalColumns+["partId"])
 
-        df_pivot = self.normalizer(X)
+        df_pivot = pd.DataFrame(self.normalizer.fit_transform(X)).rename(columns={0: "class"})
         #dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value, columns=self.spatioTemporalColumns)
 
         if self.verbose: print("Extracting clusters", flush=True)

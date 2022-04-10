@@ -4,8 +4,9 @@ import pandas as pd
 from sklearn.exceptions import DataDimensionalityWarning
 from tqdm.autonotebook import tqdm
 
+from cri98tj.normalizers.normalizer_utils import dataframe_pivot
 from cri98tj.selectors.SelectorInterface import SelectorInterface
-from cri98tj.selectors.selector_utils import dataframe_pivot, maxInformationGainScore
+from cri98tj.selectors.selector_utils import maxInformationGainScore
 
 
 class RandomInformationGain_selector(SelectorInterface):

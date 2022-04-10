@@ -1,7 +1,6 @@
 import pandas as pd
 from geolib import geohash
 from sklearn.exceptions import *
-from sklearn.preprocessing import MinMaxScaler
 from tqdm.auto import tqdm
 
 from cri98tj.partitioners.PartitionerInterface import PartitionerInterface

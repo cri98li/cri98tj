@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.exceptions import DataDimensionalityWarning
 
 from cri98tj.normalizers.NormalizerInterface import NormalizerInterface
-from cri98tj.selectors.selector_utils import dataframe_pivot
+from cri98tj.normalizers.normalizer_utils import dataframe_pivot
 
 
 class FirstPoint_normalizer(NormalizerInterface):
