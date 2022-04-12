@@ -67,7 +67,7 @@ class OPTICS_selector(SelectorInterface):
 
         #df = pd.DataFrame(X, columns=["tid", "class"]+self.spatioTemporalColumns+["partId"])
 
-        df_pivot = pd.DataFrame(self.normalizer.fit_transform(X)).rename(columns={0: "class"})
+        df_pivot = self.normalizer.fit_transform(X)
         #dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value, columns=self.spatioTemporalColumns)
 
         if self.verbose: print("Extracting clusters", flush=True)

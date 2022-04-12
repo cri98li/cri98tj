@@ -36,7 +36,7 @@ class Random_selector(SelectorInterface):
     def transform(self, X):
 
         #df = pd.DataFrame(X, columns=["tid", "class"]+self.spatioTemporalColumns+["partId"])
-        df_pivot = pd.DataFrame(self.normalizer.fit_transform(X)).rename(columns={0: "class"})
+        df_pivot = self.normalizer.fit_transform(X)
         #df_pivot = dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value, columns=self.spatioTemporalColumns)
 
         #df_movelets = df_pivot.groupby('class', group_keys=False).apply(lambda x: x.sample(min(len(x), self.n_movelets))).drop(columns=["occupied"]).values

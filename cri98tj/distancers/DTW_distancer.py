@@ -6,14 +6,15 @@ from tqdm.autonotebook import tqdm
 
 from cri98tj.distancers.DistancerInterface import DistancerInterface
 from cri98tj.distancers.distancer_utils import DTWBestFitting
+from cri98tj.normalizers.NormalizerInterface import NormalizerInterface
 from cri98tj.normalizers.normalizer_utils import dataframe_pivot
 
 
 class DTW_distancer(DistancerInterface):
 
-    def __init__(self, n_jobs=1, optimize=True, spatioTemporalColumns=["c1", "c2"], verbose=True):
+    def __init__(self, normalizer, n_jobs=1, spatioTemporalColumns=["c1", "c2"], verbose=True):
         self.verbose = verbose
-        self.optimize = optimize
+        self.normalizer = normalizer
         self.spatioTemporalColumns = spatioTemporalColumns
         self.n_jobs = n_jobs
 
@@ -55,7 +56,7 @@ class DTW_distancer(DistancerInterface):
         distances = []
         for j, trajectory in enumerate( tqdm(ndarray_pivot, disable=True, position=i+1, leave=True)):
             best_i, best_score = DTWBestFitting(trajectory=trajectory, movelet=movelet,
-                                                      spatioTemporalColumns=spatioTemporalColumns)
+                                                      spatioTemporalColumns=spatioTemporalColumns, normalizer=self.normalizer)
             distances.append(best_score)
 
         return distances

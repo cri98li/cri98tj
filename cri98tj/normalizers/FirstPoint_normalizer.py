@@ -37,9 +37,14 @@ class FirstPoint_normalizer(NormalizerInterface):
         for row in array_pivot:
             start = None
             for i in range(1, len(row)):
-                if (i-1) % ((len(row)-1) / len(self.spatioTemporalColumns)) == 0:
+                if (i - 1) % ((len(row) - 1) / len(self.spatioTemporalColumns)) == 0:
                     start = row[i]
 
                 if row[i] is not None:
                     row[i] -= start
-        return array_pivot
+        return pd.DataFrame(array_pivot, columns=df_pivot.columns)
+
+    def _transformSingleTraj(self, X):  # X è una lista di numeri semplici
+        row = X.copy()
+
+        return list(map(lambda x: x - row[0], row))

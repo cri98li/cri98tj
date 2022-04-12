@@ -35,7 +35,8 @@ class XMeans_selector(SelectorInterface):
     """
 
     def transform(self, X):
-        df_pivot = pd.DataFrame(self.normalizer.fit_transform(X)).rename(columns={0: "class"})
+        df = pd.DataFrame(X, columns=["tid", "class"] + self.spatioTemporalColumns + ["partId"])
+        df_pivot = self.normalizer.fit_transform(X)
 
         if self.verbose: print("Extracting clusters", flush=True)
         centroids = {}

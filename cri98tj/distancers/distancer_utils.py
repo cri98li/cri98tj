@@ -4,8 +4,10 @@ from math import inf
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
+from cri98tj.normalizers.NormalizerInterface import NormalizerInterface
 
-def euclideanBestFitting(trajectory, movelet, spatioTemporalColumns):  # nan == end
+
+def euclideanBestFitting(trajectory, movelet, spatioTemporalColumns, normalizer=NormalizerInterface()):  # nan == end
     if len(trajectory) % len(spatioTemporalColumns) != 0:
         raise Exception(f"la lunghezza della traiettoria deve essere divisivile per {len(spatioTemporalColumns)}")
     if len(movelet) % len(spatioTemporalColumns) != 0:
@@ -27,7 +29,7 @@ def euclideanBestFitting(trajectory, movelet, spatioTemporalColumns):  # nan == 
         len_t += 1
 
     if len_mov > len_t:
-        return euclideanBestFitting(movelet, trajectory, spatioTemporalColumns)
+        return euclideanBestFitting(movelet, trajectory, spatioTemporalColumns, normalizer)
 
     trajectory_dict = [None for x in spatioTemporalColumns]
     movelet_dict = [None for x in spatioTemporalColumns]
@@ -41,7 +43,7 @@ def euclideanBestFitting(trajectory, movelet, spatioTemporalColumns):  # nan == 
     for i in range(len_t - len_mov + 1):
         trajectory_dict_cut = dict()
         for j, col in enumerate(spatioTemporalColumns):
-            trajectory_dict_cut[j] = trajectory_dict[j][i:i + len_mov]
+            trajectory_dict_cut[j] = normalizer._transformSingleTraj(trajectory_dict[j][i:i + len_mov])
         returned = _euclideanDistance(trajectory_dict_cut, movelet_dict, spatioTemporalColumns, bestScore)
         if returned is not None and returned < bestScore:
             bestScore = returned
@@ -57,7 +59,7 @@ def _euclideanDistance(trajectory=[], movelet=[], spatioTemporalColumns=[], best
     for i in range(_len):
         tmp = 0.0
         for j in range(len(spatioTemporalColumns)):
-            tmp += (trajectory[j][i] - movelet[j][i]+trajectory[j][0]) ** 2
+            tmp += (trajectory[j][i] - movelet[j][i]) ** 2
         sum += math.sqrt(tmp)
         if sum / _len > best_score:
             return None
@@ -65,7 +67,7 @@ def _euclideanDistance(trajectory=[], movelet=[], spatioTemporalColumns=[], best
     return sum / _len
 
 
-def DTWBestFitting(trajectory, movelet, spatioTemporalColumns, window=None):  # nan == end
+def DTWBestFitting(trajectory, movelet, spatioTemporalColumns, window=None, normalizer=NormalizerInterface()):  # nan == end
     if len(trajectory) % len(spatioTemporalColumns) != 0:
         raise Exception(f"la lunghezza della traiettoria deve essere divisivile per {len(spatioTemporalColumns)}")
     if len(movelet) % len(spatioTemporalColumns) != 0:
@@ -87,13 +89,13 @@ def DTWBestFitting(trajectory, movelet, spatioTemporalColumns, window=None):  # 
         len_t += 1
 
     if len_mov > len_t:
-        return euclideanBestFitting(movelet, trajectory, spatioTemporalColumns)
+        return DTWBestFitting(movelet, trajectory, spatioTemporalColumns, window, normalizer)
 
     trajectory_dict = [None for x in spatioTemporalColumns]
     movelet_dict = [None for x in spatioTemporalColumns]
 
     for i, col in enumerate(spatioTemporalColumns):
-        trajectory_dict[i] = trajectory[i * offset_trajectory:(i * offset_trajectory) + len_t]
+        trajectory_dict[i] = normalizer._transformSingleTraj(trajectory[i * offset_trajectory:(i * offset_trajectory) + len_t])
         movelet_dict[i] = movelet[i * offset_movelet:(i * offset_movelet) + len_mov]
 
     returned = _DTWBestFitting(trajectory=trajectory_dict, movelet=movelet_dict, spatioTemporalColumns=spatioTemporalColumns, window=window)
@@ -121,7 +123,7 @@ def _DTWBestFitting(trajectory, movelet, spatioTemporalColumns, window=None):
         for j in range(loop_min, loop_max + 1):
             cost = 0
             for k in range(len(spatioTemporalColumns)):
-                cost += (movelet[k][i - 1]+trajectory[k][0] - trajectory[k][j - 1]) ** 2
+                cost += (movelet[k][i - 1] - trajectory[k][j - 1]) ** 2
             cost **= (1 / len(spatioTemporalColumns))
             # take last min from a square box
             last_min = np.min([dtw_matrix[i - 1, j], dtw_matrix[i, j - 1], dtw_matrix[i - 1, j - 1]])

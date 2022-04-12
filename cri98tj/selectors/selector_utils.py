@@ -5,11 +5,15 @@ import pandas as pd
 from cri98tj.distancers.distancer_utils import euclideanBestFitting
 
 
-def orderlineScore_leftPure(trajectories, movelet, y_trajectories, y_movelet=None, spatioTemporalColumns=["c1", "c2"]):
+class NormalizerInteface:
+    pass
+
+
+def orderlineScore_leftPure(trajectories, movelet, y_trajectories, y_movelet=None, spatioTemporalColumns=["c1", "c2"], normalizer=NormalizerInteface()):
     distances = dict()
     for i, trajectory in enumerate(trajectories):
         tmp, distances[i] = euclideanBestFitting(trajectory=trajectory, movelet=movelet,
-                                                 spatioTemporalColumns=spatioTemporalColumns)
+                                                 spatioTemporalColumns=spatioTemporalColumns, normalizer=normalizer)
         #print(F"[{movelet}] vs [{trajectory}], alighedAt={tmp} with score of {distances[i]}")
 
     #plt.scatter(distances.values(), [i for i in range(len(y_trajectories))], c=y_trajectories)

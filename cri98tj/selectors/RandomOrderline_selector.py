@@ -49,7 +49,7 @@ class RandomOrderline_selector(SelectorInterface):
 
     def transform(self, X):
         df = pd.DataFrame(X, columns=["tid", "class"]+self.spatioTemporalColumns+["partId"])
-        df_pivot = pd.DataFrame(self.normalizer.fit_transform(X)).rename(columns={0: "class"})
+        df_pivot = self.normalizer.fit_transform(X)
 
         if self.n_movelets is None:
             self.n_movelets = len(df_pivot)
@@ -59,7 +59,7 @@ class RandomOrderline_selector(SelectorInterface):
             .apply(lambda x: x.sample(min(len(x), self.n_movelets))).drop(columns=["class"]).values
 
         df.partId = df.tid
-        df_pivot = pd.DataFrame(self.normalizer.fit_transform(X)).rename(columns={0: "class"})
+        df_pivot = self.normalizer.fit_transform(X)
 
         if self.n_trajectories is None:
             self.n_trajectories = len(df_pivot)
@@ -77,7 +77,7 @@ class RandomOrderline_selector(SelectorInterface):
         executor = ProcessPoolExecutor(max_workers=self.n_jobs)
         processes = []
         for movelet in tqdm(movelets_to_test, disable=not self.verbose, position=0, leave=True):
-            processes.append(executor.submit(orderlineScore_leftPure, trajectories_for_orderline, movelet, y_trajectories_for_orderline, None, self.spatioTemporalColumns))
+            processes.append(executor.submit(orderlineScore_leftPure, trajectories_for_orderline, movelet, y_trajectories_for_orderline, None, self.spatioTemporalColumns, self.normalizer))
             #scores.append(orderlineScore_leftPure(movelet=movelet, trajectories=trajectories_for_orderline,
                                                   #y_trajectories=y_trajectories_for_orderline))
 
