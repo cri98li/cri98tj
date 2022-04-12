@@ -57,7 +57,7 @@ def _euclideanDistance(trajectory=[], movelet=[], spatioTemporalColumns=[], best
     for i in range(_len):
         tmp = 0.0
         for j in range(len(spatioTemporalColumns)):
-            tmp += (trajectory[j][i] - movelet[j][i]+trajectory[j].min()) ** 2
+            tmp += (trajectory[j][i] - movelet[j][i]+trajectory[j][0]) ** 2
         sum += math.sqrt(tmp)
         if sum / _len > best_score:
             return None
@@ -121,7 +121,7 @@ def _DTWBestFitting(trajectory, movelet, spatioTemporalColumns, window=None):
         for j in range(loop_min, loop_max + 1):
             cost = 0
             for k in range(len(spatioTemporalColumns)):
-                cost += (movelet[k][i - 1]+trajectory[k].min() - trajectory[k][j - 1]) ** 2
+                cost += (movelet[k][i - 1]+trajectory[k][0] - trajectory[k][j - 1]) ** 2
             cost **= (1 / len(spatioTemporalColumns))
             # take last min from a square box
             last_min = np.min([dtw_matrix[i - 1, j], dtw_matrix[i, j - 1], dtw_matrix[i - 1, j - 1]])

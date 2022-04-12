@@ -20,8 +20,8 @@ from sklearn.ensemble import RandomForestClassifier
 from cri98tj.selectors.XMeans_selector import XMeans_selector
 import pandas as pd
 if __name__ == '__main__':
-    #df = pd.read_csv('..\\..\\cri98tj\\datasets\\animals\\animals_preapred.zip').sort_values(by=["tid", "t"])
-    df = pd.read_csv('..\\..\\cri98tj\\datasets\\vehicles\\vehicles_preapred.zip').sort_values(by=["tid", "t"])
+    df = pd.read_csv('..\\..\\cri98tj\\datasets\\animals\\animals_preapred.zip').sort_values(by=["tid", "t"])# precision=5, 50 movelet, DTW
+    #df = pd.read_csv('..\\..\\cri98tj\\datasets\\vehicles\\vehicles_preapred.zip').sort_values(by=["tid", "t"])
 
     start = time.time()
 
@@ -29,8 +29,8 @@ if __name__ == '__main__':
 
     df = df[["tid", "class", "c1", "c2"]]
 
-    df["c1"] = df.c1/100000
-    df["c2"] = df.c2/100000
+    #df["c1"] = df.c1/100000
+    #df["c2"] = df.c2/100000
 
 
 
@@ -48,22 +48,22 @@ if __name__ == '__main__':
                                                         random_state=3)
 
 
-    partitioner = Geohash_partitioner(precision=4, spatioTemporalColumns=spatioTemporalCols)
+    partitioner = Geohash_partitioner(precision=5, spatioTemporalColumns=spatioTemporalCols)
 
     part = partitioner.fit_transform(df[df.tid.isin(tid_train)].values)
 
 
     #selector = OPTICS_selector(n_jobs=20, normalizer=FirstPoint_normalizer(spatioTemporalColumns=spatioTemporalCols, fillna=0.0))
-    selector = Random_selector(movelets_per_class=10, normalizer=FirstPoint_normalizer(spatioTemporalColumns=spatioTemporalCols, fillna=None))
+    #selector = Random_selector(movelets_per_class=50, normalizer=FirstPoint_normalizer(spatioTemporalColumns=spatioTemporalCols, fillna=None))
     #selector = XMeans_selector(kmax=10, normalizer=FirstPoint_normalizer(spatioTemporalColumns=spatioTemporalCols, fillna=0.0))
-    #selector = RandomOrderline_selector(top_k=20, movelets_per_class=100, trajectories_for_orderline=1000, n_jobs=8, spatioTemporalColumns=spatioTemporalCols, normalizer=FirstPoint_normalizer(spatioTemporalColumns=spatioTemporalCols, fillna=None))
+    selector = RandomOrderline_selector(top_k=50, movelets_per_class=None, trajectories_for_orderline=None, n_jobs=5, spatioTemporalColumns=spatioTemporalCols, normalizer=FirstPoint_normalizer(spatioTemporalColumns=spatioTemporalCols, fillna=None))
     #selector = RandomInformationGain_selector(top_k=200, movelets_per_class=None,
                                               #trajectories_for_orderline=None, n_jobs=20, spatioTemporalColumns=["c1", "c2", "time"])
 
     shapelets = selector.fit_transform(part)
 
-    #distancer = Euclidean_distancer(spatioTemporalColumns=spatioTemporalCols, n_jobs=10)
-    distancer = DTW_distancer(spatioTemporalColumns=spatioTemporalCols, n_jobs=10)
+    #distancer = Euclidean_distancer(spatioTemporalColumns=spatioTemporalCols, n_jobs=5)
+    distancer = DTW_distancer(spatioTemporalColumns=spatioTemporalCols, n_jobs=5)
 
     #dist_np = TrajectoryTransformer(partitioner=partitioner, selector=selector, distancer=distancer).fit_transform(df.values)
 
