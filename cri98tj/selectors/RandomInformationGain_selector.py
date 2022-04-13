@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.exceptions import DataDimensionalityWarning
 from tqdm.autonotebook import tqdm
 
-from cri98tj.normalizers.normalizer_utils import dataframe_pivot
+from cri98tj.normalizers.normalizer_utils import dataframe_pivot2
 from cri98tj.selectors.SelectorInterface import SelectorInterface
 from cri98tj.selectors.selector_utils import maxInformationGainScore
 
@@ -55,24 +55,24 @@ class RandomInformationGain_selector(SelectorInterface):
         self._checkFormat(X)
 
         df = pd.DataFrame(X, columns=["tid", "class"]+self.spatioTemporalColumns+["partId"])
-        df_pivot = dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value,
+        df_pivot = dataframe_pivot2(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value,
                                    columns=self.spatioTemporalColumns)
         if self.n_movelets is None:
             self.n_movelets = len(df_pivot)  # upper bound
         elif self.n_movelets < 1:
             self.n_movelets = round(self.n_movelets * len(df_pivot))
         df.partId = df.tid
-        movelets_to_test = df_pivot.groupby('class', group_keys=False).apply(
-            lambda x: x.sample(min(len(x), self.n_movelets))).drop(columns=["class"]).values
+        movelets_to_test = df_pivot.groupby(by=["tid", "class", "partId"], group_keys=False).apply(
+            lambda x: x.sample(min(len(x), self.n_movelets))).drop(columns=["tid", "class", "partId"]).values
 
-        df_pivot = dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value)
+        df_pivot = dataframe_pivot2(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value)
         if self.n_trajectories is None:
             self.n_trajectories = len(df_pivot) # upper bound
         elif self.n_trajectories < 1:
             self.n_trajectories = round(self.n_trajectories * len(df_pivot))
-        trajectories_for_orderline_df = df_pivot.groupby('class', group_keys=False).apply(
+        trajectories_for_orderline_df = df_pivot.groupby(by=["tid", "class", "partId"], group_keys=False).apply(
             lambda x: x.sample(min(len(x), self.n_trajectories)))
-        trajectories_for_orderline = trajectories_for_orderline_df.drop(columns=["class"]).values
+        trajectories_for_orderline = trajectories_for_orderline_df.drop(columns=["tid", "class", "partId"]).values
         y_trajectories_for_orderline = trajectories_for_orderline_df[["class"]].values
 
         scores = []

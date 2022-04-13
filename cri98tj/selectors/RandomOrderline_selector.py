@@ -4,6 +4,8 @@ import pandas as pd
 from sklearn.exceptions import DataDimensionalityWarning
 from tqdm.autonotebook import tqdm
 
+from cri98tj.distancers.distancer_utils import euclideanBestFitting
+from cri98tj.normalizers.normalizer_utils import dataframe_pivot2
 from cri98tj.selectors.SelectorInterface import SelectorInterface
 from cri98tj.selectors.selector_utils import orderlineScore_leftPure
 
@@ -15,7 +17,7 @@ class RandomOrderline_selector(SelectorInterface):
                 "The input data must be in this form (tid, class, time, c1, c2, partitionId)")
         # Altri controlli?
 
-    def __init__(self, normalizer, spatioTemporalColumns=[], top_k=10, movelets_per_class=100, trajectories_for_orderline=.10, n_jobs=1, verbose=True):
+    def __init__(self, normalizer, spatioTemporalColumns=[], distanceMeasure=euclideanBestFitting, top_k=10, movelets_per_class=100, trajectories_for_orderline=.10, n_jobs=1, verbose=True):
         self.normalizer = normalizer
         self.verbose = verbose
         self.n_jobs = n_jobs
@@ -23,6 +25,7 @@ class RandomOrderline_selector(SelectorInterface):
         self.n_trajectories = trajectories_for_orderline
         self.spatioTemporalColumns = spatioTemporalColumns
         self.top_k = top_k
+        self.distanceMeasure = distanceMeasure
 
         self._fitted = False
 
@@ -56,10 +59,10 @@ class RandomOrderline_selector(SelectorInterface):
         elif self.n_movelets < 1:
             self.n_movelets = round(self.n_movelets*len(df_pivot))
         movelets_to_test = df_pivot.groupby('class', group_keys=False)\
-            .apply(lambda x: x.sample(min(len(x), self.n_movelets))).drop(columns=["class"]).values
+            .apply(lambda x: x.sample(min(len(x), self.n_movelets))).drop(columns=["tid", "class", "partId"])
 
         df.partId = df.tid
-        df_pivot = self.normalizer.fit_transform(X)
+        df_pivot = dataframe_pivot2(df, maxLen=None, verbose=self.verbose, fillna_value=None, columns=self.spatioTemporalColumns)
 
         if self.n_trajectories is None:
             self.n_trajectories = len(df_pivot)
@@ -67,8 +70,6 @@ class RandomOrderline_selector(SelectorInterface):
             self.n_trajectories = round(self.n_trajectories * len(df_pivot))
         trajectories_for_orderline_df = df_pivot.groupby('class', group_keys=False).apply(
             lambda x: x.sample(min(len(x), self.n_trajectories)))
-        trajectories_for_orderline = trajectories_for_orderline_df.drop(columns=["class"]).values
-        y_trajectories_for_orderline = trajectories_for_orderline_df[["class"]].values
 
         scores = []
 
@@ -76,10 +77,10 @@ class RandomOrderline_selector(SelectorInterface):
 
         executor = ProcessPoolExecutor(max_workers=self.n_jobs)
         processes = []
-        for movelet in tqdm(movelets_to_test, disable=not self.verbose, position=0, leave=True):
-            processes.append(executor.submit(orderlineScore_leftPure, trajectories_for_orderline, movelet, y_trajectories_for_orderline, None, self.spatioTemporalColumns, self.normalizer))
-            #scores.append(orderlineScore_leftPure(movelet=movelet, trajectories=trajectories_for_orderline,
-                                                  #y_trajectories=y_trajectories_for_orderline))
+        for movelet in tqdm(movelets_to_test.values, disable=not self.verbose, position=0, leave=True):
+            processes.append(executor.submit(orderlineScore_leftPure, trajectories_for_orderline_df, movelet, None,
+                                             self.spatioTemporalColumns, ["tid", "class", "partId"], self.normalizer,
+                                             self.distanceMeasure))
 
         for process in tqdm(processes):
             scores.append(process.result())

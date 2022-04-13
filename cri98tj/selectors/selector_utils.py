@@ -9,10 +9,16 @@ class NormalizerInteface:
     pass
 
 
-def orderlineScore_leftPure(trajectories, movelet, y_trajectories, y_movelet=None, spatioTemporalColumns=["c1", "c2"], normalizer=NormalizerInteface()):
+def orderlineScore_leftPure(trajectories, movelet, y_movelet, spatioTemporalColumns, columnsToExclude,
+                            normalizer=NormalizerInteface(), distanceMeasure=euclideanBestFitting):
     distances = dict()
+
+    y_trajectories = trajectories["class"]
+
+    trajectories = trajectories.copy().drop(columns=columnsToExclude).values
+
     for i, trajectory in enumerate(trajectories):
-        tmp, distances[i] = euclideanBestFitting(trajectory=trajectory, movelet=movelet,
+        tmp, distances[i] = distanceMeasure(trajectory=trajectory, movelet=movelet,
                                                  spatioTemporalColumns=spatioTemporalColumns, normalizer=normalizer)
         #print(F"[{movelet}] vs [{trajectory}], alighedAt={tmp} with score of {distances[i]}")
 

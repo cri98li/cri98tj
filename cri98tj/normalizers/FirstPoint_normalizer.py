@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.exceptions import DataDimensionalityWarning
 
 from cri98tj.normalizers.NormalizerInterface import NormalizerInterface
-from cri98tj.normalizers.normalizer_utils import dataframe_pivot
+from cri98tj.normalizers.normalizer_utils import dataframe_pivot2
 
 
 class FirstPoint_normalizer(NormalizerInterface):
@@ -30,14 +30,16 @@ class FirstPoint_normalizer(NormalizerInterface):
 
     def transform(self, X):
         df = pd.DataFrame(X, columns=["tid", "class"] + self.spatioTemporalColumns + ["partId"])
-        df_pivot = dataframe_pivot(df, self.maxLen, self.verbose, self.fillna, self.spatioTemporalColumns)
+        df_pivot = dataframe_pivot2(df, self.maxLen, self.verbose, self.fillna, self.spatioTemporalColumns)
 
         array_pivot = df_pivot.values
 
+        offset = len(df.columns)-len(self.spatioTemporalColumns)
+
         for row in array_pivot:
             start = None
-            for i in range(1, len(row)):
-                if (i - 1) % ((len(row) - 1) / len(self.spatioTemporalColumns)) == 0:
+            for i in range(offset, len(row)): #Escludo le colonne contenenti tid, class e partId
+                if (i - offset) % ((len(row) - offset) / len(self.spatioTemporalColumns)) == 0:
                     start = row[i]
 
                 if row[i] is not None:

@@ -7,7 +7,7 @@ from tqdm.autonotebook import tqdm
 from cri98tj.distancers.DistancerInterface import DistancerInterface
 from cri98tj.distancers.distancer_utils import euclideanBestFitting
 from cri98tj.normalizers.NormalizerInterface import NormalizerInterface
-from cri98tj.normalizers.normalizer_utils import dataframe_pivot
+from cri98tj.normalizers.normalizer_utils import dataframe_pivot2
 
 
 class Euclidean_distancer(DistancerInterface):
@@ -28,13 +28,13 @@ class Euclidean_distancer(DistancerInterface):
 
         trajectories_df = pd.DataFrame(trajectories, columns=["tid", "class"]+self.spatioTemporalColumns)
         trajectories_df["partId"] = trajectories_df.tid
-        df_pivot = dataframe_pivot(df=trajectories_df, maxLen=None, verbose=self.verbose, fillna_value=None, columns=self.spatioTemporalColumns)
+        df_pivot = dataframe_pivot2(df=trajectories_df, maxLen=None, verbose=self.verbose, fillna_value=None, columns=self.spatioTemporalColumns)
 
         distances = np.zeros((df_pivot.shape[0], len(movelets)))
 
         executor = ProcessPoolExecutor(max_workers=self.n_jobs)
 
-        ndarray_pivot = df_pivot[[x for x in df_pivot.columns if x != "class"]].values
+        ndarray_pivot = df_pivot[[x for x in df_pivot.columns if x not in ["tid", "class"]]].values
         processes = []
         for i, movelet in enumerate(tqdm(movelets, disable=not self.verbose, position=0)):
             processes.append(executor.submit(self._foo, i, movelet, ndarray_pivot, self.spatioTemporalColumns))
@@ -54,7 +54,7 @@ class Euclidean_distancer(DistancerInterface):
 
     def _foo(self,i, movelet, ndarray_pivot, spatioTemporalColumns):
         distances = []
-        for j, trajectory in enumerate( tqdm(ndarray_pivot, disable=True, position=i+1, leave=True)):
+        for j, trajectory in enumerate(tqdm(ndarray_pivot, disable=True, position=i+1, leave=True)):
             best_i, best_score = euclideanBestFitting(trajectory=trajectory, movelet=movelet,
                                                       spatioTemporalColumns=spatioTemporalColumns, normalizer=self.normalizer)
             distances.append(best_score)

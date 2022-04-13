@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.exceptions import DataDimensionalityWarning
+from geolib import geohash
 
 from cri98tj.normalizers.NormalizerInterface import NormalizerInterface
 from cri98tj.normalizers.normalizer_utils import dataframe_pivot
@@ -12,11 +13,12 @@ class GeohashPartition_normalizer(NormalizerInterface):
                 "The input data must be in this form [tid, class]+spatioTemporalColumns+[partId]")
         # Altri controlli?
 
-    def __init__(self, spatioTemporalColumns=None, maxLen=.95, fillna=None, verbose=True):
+    def __init__(self, precision, spatioTemporalColumns=None, maxLen=.95, fillna=None, verbose=True):
         self.spatioTemporalColumns = spatioTemporalColumns
         self.verbose = verbose
         self.fillna = fillna
         self.maxLen = maxLen
+        self.precision = precision
 
     def fit(self, X):
         self._checkFormat(X)
@@ -30,16 +32,18 @@ class GeohashPartition_normalizer(NormalizerInterface):
 
     def transform(self, X):
         df = pd.DataFrame(X, columns=["tid", "class"] + self.spatioTemporalColumns + ["partId"])
-        df_pivot = dataframe_pivot(df, self.maxLen, self.verbose, self.fillna, self.spatioTemporalColumns)
 
-        array_pivot = df_pivot.values
+        for gh in df.partId.unique():
+            decoded_gh = geohash.bounds(gh).sw
+            df[df.partId == gh].c1 = decoded_gh.lat
+            df[df.partId == gh].c2 = decoded_gh.lon
 
-        for row in array_pivot:
-            start = None
-            for i in range(1, len(row)):
-                if (i-1) % ((len(row)-1) / len(self.spatioTemporalColumns)) == 0:
-                    start = row[i]
+        return dataframe_pivot(df, self.maxLen, self.verbose, self.fillna, self.spatioTemporalColumns)
 
-                if row[i] is not None:
-                    row[i] -= start
-        return array_pivot
+    def _transformSingleTraj(self, X):  # X è una lista di numeri semplici
+        raise NotImplementedError("Please use the method _transformSingleTrajCoordinates(self, X_lat, X_lon)")
+
+    def _transformSingleTrajCoordinates(self, X_lat, X_lon):
+        decoded_gh = geohash.bounds(geohash.encode(X_lat[0], X_lon[0], self.precision)).sw
+
+        return list(map(lambda x: x-decoded_gh.lat, X_lat)), list(map(lambda x: x-decoded_gh.lon, X_lon))
