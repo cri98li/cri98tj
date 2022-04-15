@@ -7,7 +7,7 @@ from cri98tj.selectors.SelectorInterface import SelectorInterface
 
 
 class TrajectoryTransformer(TransformerMixin):
-    def __init__(self, partitioner, selector, distancer):
+    def __init__(self, partitioner, normalizer, selector, distancer):
         assert isinstance(partitioner, PartitionerInterface)
         assert isinstance(selector, SelectorInterface)
         assert isinstance(distancer, DistancerInterface)

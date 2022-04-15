@@ -41,6 +41,9 @@ class Random_selector(SelectorInterface):
 
         #df_movelets = df_pivot.groupby('class', group_keys=False).apply(lambda x: x.sample(min(len(x), self.n_movelets))).drop(columns=["occupied"]).values
 
+        for cl in df_pivot["class"].unique():
+            maxMov = len(df_pivot[df_pivot["class"] == cl])
+            if self.verbose: print(f'Selecting {min(maxMov, self.n_movelets)} movelet over {maxMov} for class {cl}')
 
         #list of list
         return df_pivot.groupby('class', group_keys=False)\

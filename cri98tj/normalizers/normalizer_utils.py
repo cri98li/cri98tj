@@ -13,10 +13,10 @@ def dataframe_pivot(df, maxLen, verbose, fillna_value, columns):
             df = df[df.pos < df.quantile(.95).pos]
 
     if verbose: print("Pivoting tables", flush=True)
-    df_pivot = df.groupby(['tid', 'pos'])[columns].max().unstack().reset_index()
-    df_pivot = df_pivot.merge(df.groupby(['tid'])['class'].max().reset_index(), on=["tid"])
+    df_pivot = df.groupby(['partId', 'pos'])[columns].max().unstack().reset_index()
+    df_pivot = df_pivot.merge(df.groupby(['partId'])['class'].max().reset_index(), on=["partId"])
     #df_pivot["size"] = df.groupby(['tid']).size()
-    df_pivot = df_pivot.drop(columns=[("tid", "")]).set_index("tid")
+    df_pivot = df_pivot.drop(columns=[("partId", "")]).set_index("partId")
 
     if fillna_value is not None:
         df_pivot.fillna(fillna_value, inplace=True)

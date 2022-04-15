@@ -51,9 +51,11 @@ class Geohash_partitioner(PartitionerInterface):
 
         c=-1
         prec="|"
+        prec_tid= -1
         for i, row in enumerate(tqdm(X, disable=not self.verbose, position=0, leave=True)):
             gh = geohash.encode(row[2], row[3], self.precision)
-            if gh != prec:
+            if gh != prec or row[0] != prec_tid:
+                prec_tid = row[0]
                 prec = gh
                 c+=1
             encodes.append(gh+"_"+str(c))

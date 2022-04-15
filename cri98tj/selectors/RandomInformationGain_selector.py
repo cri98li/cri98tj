@@ -1,23 +1,26 @@
 from concurrent.futures import ProcessPoolExecutor
 
+import numpy as np
 import pandas as pd
 from sklearn.exceptions import DataDimensionalityWarning
+from sklearn.feature_selection import mutual_info_classif
 from tqdm.autonotebook import tqdm
 
+from cri98tj.distancers.Euclidean_distancer import euclideanBestFitting
 from cri98tj.normalizers.normalizer_utils import dataframe_pivot
 from cri98tj.selectors.SelectorInterface import SelectorInterface
-from cri98tj.selectors.selector_utils import maxInformationGainScore
 
 
 class RandomInformationGain_selector(SelectorInterface):
     def _checkFormat(self, X):
-        if X.shape[1] != 6:
+        if X.shape[1] != 3+len(self.spatioTemporalColumns):
             raise DataDimensionalityWarning(
-                "The input data must be in this form (tid, class, time, c1, c2, partitionId)")
+                "The input data must be in this form [tid, class] + spatioTemporalColumns + [partitionId]")
         # Altri controlli?
 
-    def __init__(self, top_k=10, movelets_per_class=100, trajectories_for_orderline=.10, maxLen=.95,
-                 spatioTemporalColumns=["c1", "c2"], fillna_value=None, n_jobs=1, verbose=True):
+    def __init__(self, normalizer, bestFittingMeasure, top_k=10, movelets_per_class=100, trajectories_for_orderline=.10, maxLen=None,
+                 spatioTemporalColumns=["c1", "c2"], fillna_value=None, n_neighbors=3, n_jobs=1, random_state=None,
+                 verbose=True):
         self.maxLen = maxLen
         self.fillna_value = fillna_value
         self.verbose = verbose
@@ -26,6 +29,10 @@ class RandomInformationGain_selector(SelectorInterface):
         self.n_trajectories = trajectories_for_orderline
         self.top_k = top_k
         self.spatioTemporalColumns = spatioTemporalColumns
+        self.n_neighbors = n_neighbors
+        self.random_state = random_state
+        self.normalizer = normalizer
+        self.bestFittingMeasure = bestFittingMeasure
 
         self._fitted = False
 
@@ -54,20 +61,21 @@ class RandomInformationGain_selector(SelectorInterface):
     def transform(self, X):
         self._checkFormat(X)
 
-        df = pd.DataFrame(X, columns=["tid", "class"]+self.spatioTemporalColumns+["partId"])
-        df_pivot = dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value,
-                                   columns=self.spatioTemporalColumns)
+        df = pd.DataFrame(X, columns=["tid", "class"] + self.spatioTemporalColumns + ["partId"])
+        df_pivot = self.normalizer.fit_transform(X)
+
         if self.n_movelets is None:
             self.n_movelets = len(df_pivot)  # upper bound
         elif self.n_movelets < 1:
             self.n_movelets = round(self.n_movelets * len(df_pivot))
-        df.partId = df.tid
         movelets_to_test = df_pivot.groupby('class', group_keys=False).apply(
             lambda x: x.sample(min(len(x), self.n_movelets))).drop(columns=["class"]).values
 
-        df_pivot = dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value)
+        df.partId = df.tid
+        df_pivot = dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value,
+                                   columns=self.spatioTemporalColumns)
         if self.n_trajectories is None:
-            self.n_trajectories = len(df_pivot) # upper bound
+            self.n_trajectories = len(df_pivot)  # upper bound
         elif self.n_trajectories < 1:
             self.n_trajectories = round(self.n_trajectories * len(df_pivot))
         trajectories_for_orderline_df = df_pivot.groupby('class', group_keys=False).apply(
@@ -79,17 +87,17 @@ class RandomInformationGain_selector(SelectorInterface):
 
         if self.verbose: print(F"Computing scores")
 
+        dist_matrix = np.zeros((len(trajectories_for_orderline), len(movelets_to_test)))
+
         executor = ProcessPoolExecutor(max_workers=self.n_jobs)
         processes = []
         for movelet in tqdm(movelets_to_test, disable=not self.verbose, position=0, leave=True):
-            processes.append(executor.submit(maxInformationGainScore, trajectories_for_orderline, movelet,
-                                             y_trajectories_for_orderline, None, self.spatioTemporalColumns))
-            # scores.append(orderlineScore_leftPure(movelet=movelet, trajectories=trajectories_for_orderline,
-            # y_trajectories=y_trajectories_for_orderline))
+            processes.append(executor.submit(self._computeDist, trajectories_for_orderline, movelet))
 
-        for process in tqdm(processes):
+        for i, process in enumerate(tqdm(processes)):
             res = process.result()
-            scores.append(res)
+            for j, el in enumerate(res):
+                dist_matrix[j][i] = el
 
         movelets = []
         for i, (score, movelet) in enumerate(sorted(zip(scores, movelets_to_test), key=lambda x: x[0], reverse=True)):
@@ -97,7 +105,21 @@ class RandomInformationGain_selector(SelectorInterface):
 
             if self.verbose: print(F"{i}.\t score={score}")
 
-            movelets.append(movelet)
+        mutualInfo = mutual_info_classif(dist_matrix, y_trajectories_for_orderline, n_neighbors=self.n_neighbors,
+                                         random_state=self.random_state)
 
-        # list of list
-        return movelets
+        for i, (score, mov) in enumerate(sorted(zip(mutualInfo, movelets_to_test), key=lambda x: x[0], reverse=True)):
+            if i >= self.top_k: break
+            movelets.append(mov)
+            if self.verbose: print(F"{i}.\t score={score}")
+
+        return movelets  # list of list
+
+    def _computeDist(self, trajectories, movelet):
+        distances = []
+        for i, trajectory in enumerate(trajectories):
+            tmp, distance = self.bestFittingMeasure(trajectory=trajectory, movelet=movelet,
+                                                 spatioTemporalColumns=self.spatioTemporalColumns,
+                                                 normalizer=self.normalizer)
+            distances.append(distance)
+        return distances

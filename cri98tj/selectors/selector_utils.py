@@ -2,7 +2,7 @@ from math import inf, log2
 
 import pandas as pd
 
-from cri98tj.distancers.distancer_utils import euclideanBestFitting
+from cri98tj.distancers.Euclidean_distancer import euclideanBestFitting
 
 
 class NormalizerInteface:
