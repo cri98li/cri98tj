@@ -9,6 +9,7 @@ from tqdm.autonotebook import tqdm
 from cri98tj.distancers.Euclidean_distancer import euclideanBestFitting
 from cri98tj.normalizers.normalizer_utils import dataframe_pivot
 from cri98tj.selectors.SelectorInterface import SelectorInterface
+from cri98tj.selectors.selector_utils import select_and_pivot
 
 
 class RandomInformationGain_selector(SelectorInterface):
@@ -62,24 +63,23 @@ class RandomInformationGain_selector(SelectorInterface):
         self._checkFormat(X)
 
         df = pd.DataFrame(X, columns=["tid", "class"] + self.spatioTemporalColumns + ["partId"])
-        df_pivot = self.normalizer.fit_transform(X)
+        n_class = len(df["class"].unique())
 
         if self.n_movelets is None:
-            self.n_movelets = len(df_pivot)  # upper bound
+            self.n_movelets = len(df.partId.unique())  # upper bound
         elif self.n_movelets < 1:
-            self.n_movelets = round(self.n_movelets * len(df_pivot))
-        movelets_to_test = df_pivot.groupby('class', group_keys=False).apply(
-            lambda x: x.sample(min(len(x), self.n_movelets))).drop(columns=["class"]).values
+            self.n_movelets = round(self.n_movelets * len(df.partId.unique()))
+
+
+        movelets_to_test = select_and_pivot(df, self.n_movelets/n_class, self.normalizer).values[:, 1:]
 
         df.partId = df.tid
-        df_pivot = dataframe_pivot(df=df, maxLen=self.maxLen, verbose=self.verbose, fillna_value=self.fillna_value,
-                                   columns=self.spatioTemporalColumns)
+
         if self.n_trajectories is None:
-            self.n_trajectories = len(df_pivot)  # upper bound
+            self.n_trajectories = len(df.partId.unique())  # upper bound
         elif self.n_trajectories < 1:
-            self.n_trajectories = round(self.n_trajectories * len(df_pivot))
-        trajectories_for_orderline_df = df_pivot.groupby('class', group_keys=False).apply(
-            lambda x: x.sample(min(len(x), self.n_trajectories)))
+            self.n_trajectories = round(self.n_trajectories * len(df.partId.unique()))
+        trajectories_for_orderline_df = select_and_pivot(df, self.n_trajectories/n_class, self.normalizer)
         trajectories_for_orderline = trajectories_for_orderline_df.drop(columns=["class"]).values
         y_trajectories_for_orderline = trajectories_for_orderline_df[["class"]].values
 

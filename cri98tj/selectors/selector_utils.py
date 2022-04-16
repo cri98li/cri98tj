@@ -1,15 +1,24 @@
 from math import inf, log2
+import random
 
 import pandas as pd
 
 from cri98tj.distancers.Euclidean_distancer import euclideanBestFitting
+from cri98tj.normalizers.NormalizerInterface import NormalizerInterface
+
+def select_and_pivot(df, n_per_class, normalizer):
+    n_per_class = int(n_per_class)
+    selected_tid = []
+    for classe in df["class"].unique():
+        df_tmp = df[df["class"] == classe]
+        selected_tid += random.sample(df_tmp.partId.unique().tolist(), k=min(len(df_tmp), n_per_class))
+
+    df = df[df.partId.isin(selected_tid)]
+
+    return normalizer.fit_transform(df.values)
 
 
-class NormalizerInteface:
-    pass
-
-
-def orderlineScore_leftPure(trajectories, movelet, y_trajectories, y_movelet=None, spatioTemporalColumns=["c1", "c2"], normalizer=NormalizerInteface()):
+def orderlineScore_leftPure(trajectories, movelet, y_trajectories, y_movelet=None, spatioTemporalColumns=["c1", "c2"], normalizer=NormalizerInterface):
     distances = dict()
     for i, trajectory in enumerate(trajectories):
         tmp, distances[i] = euclideanBestFitting(trajectory=trajectory, movelet=movelet,
