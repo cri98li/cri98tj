@@ -11,7 +11,7 @@ def select_and_pivot(df, n_per_class, normalizer):
     selected_tid = []
     for classe in df["class"].unique():
         df_tmp = df[df["class"] == classe]
-        selected_tid += random.sample(df_tmp.partId.unique().tolist(), k=min(len(df_tmp), n_per_class))
+        selected_tid += random.sample(df_tmp.partId.unique().tolist(), k=min(len(df_tmp.partId.unique()), n_per_class))
 
     df = df[df.partId.isin(selected_tid)]
 
