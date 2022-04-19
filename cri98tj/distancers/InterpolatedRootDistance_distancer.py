@@ -110,11 +110,11 @@ def InterpolatedRootDistanceBestFitting(trajectory, movelet, spatioTemporalColum
 
 
 
-def _transformTraj(x):#[[lat1, lat2, ...], [lon1, lon2, ...]] --> [[lat1,lon1], [lat2, lon2], [..., ...], ...]
+def _transformTraj(x): #[[lat1, lat2, ...], [lon1, lon2, ...], [t1, t2, ...]] --> [[lat1,lon1,t1], [lat2, lon2,t2], [..., ...], ...]
     if len(x) != 3:
         raise NotImplementedError("This method is suitable only for trajectory data (lat, lon, time)")
 
-    return list(zip(x[0],  x[1], x[2]))
+    return list(zip(x[0], x[1], x[2]))
 
 #From here credits to Riccardo Guidotti
 
@@ -160,8 +160,8 @@ def trajectory_distance(tr1, tr2):
     np += 1
 
     while True:
-        step_tr1 = spherical_distance(last_tr1, tr1[i1+1])
-        step_tr2 = spherical_distance(last_tr2, tr2[i2+1])
+        if i1 >= (len(tr1)-1) or i2 >= (len(tr2)-1):
+            break
 
         step_tr1 = spherical_distance(last_tr1, tr1[i1 + 1])
         step_tr2 = spherical_distance(last_tr2, tr2[i2 + 1])
@@ -184,9 +184,6 @@ def trajectory_distance(tr1, tr2):
 
         dist += d
         np += 1
-
-        if i1 >= (len(tr1)-1) or i2 >= (len(tr2)-1):
-            break
 
     for i in range(i1, len(tr1)):
         d = spherical_distance(tr2[-1], tr1[i])
