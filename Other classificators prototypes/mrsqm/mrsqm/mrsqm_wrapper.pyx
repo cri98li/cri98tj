@@ -7,6 +7,8 @@ import pandas as pd
 from numpy.random import randint
 from sklearn.linear_model import LogisticRegression, RidgeClassifierCV
 
+from tqdm.auto import tqdm
+
 from sklearn.feature_selection import SelectKBest, chi2, VarianceThreshold
 
 
@@ -327,7 +329,7 @@ class MrSQMClassifier:
                         })        
 
         
-        for cfg in self.config:
+        for cfg in tqdm(self.config, desc="converting to to sax"):
             for i in range(ts_x.shape[1]):
                 tssr = []
 
@@ -343,9 +345,39 @@ class MrSQMClassifier:
                     tssr = cfg['signature'].transform(ts_x_array)
                 multi_tssr.append(tssr)
 
-        # QUI FORSE È DOVE DEVO MODIFICARE
 
-        return multi_tssr
+        new_multi_tssr = []
+
+        i = 0
+        for conf_lat, conf_lon in tqdm(zip(multi_tssr[0::2], multi_tssr[1::2]), desc="converting to trajectory-sax", total=len(multi_tssr[::2])):
+            i+=1
+            new_tssr = []
+            j=0
+
+            c = b'a'
+            dizionario = {}
+            for k in range(len(conf_lat)): #scorro le varie serie temporali
+                #print(f"{i}-{k}, len={len(conf_lat)} {len(conf_lon)}  len_k={len(conf_lat[k])} {len(conf_lon[k])}")
+                seq = b''
+
+                for sym1, sym2 in zip(conf_lat[k], conf_lon[k]):
+                    j +=1
+
+                    if sym1 == 32:
+                        seq += b' '
+                        continue
+
+                    key = (sym1, sym2)
+                    if key not in dizionario:
+                        #print(f"{i}-{k}) {key} not in dict, generating new symbol {str(c)}->{int.from_bytes(c, byteorder='big')+1}")
+                        c = (int.from_bytes(c, byteorder='big')+1).to_bytes(1, byteorder='big')
+                        dizionario[key] = c
+                    seq += dizionario[key]
+                new_tssr.append(seq)
+            new_multi_tssr.append(new_tssr)
+
+
+        return new_multi_tssr
   
     def sample_random_sequences(self, seqs, min_length, max_length, max_n_seq):  
                 
@@ -422,7 +454,7 @@ class MrSQMClassifier:
 
     def mine(self,rep, int_y):        
         mined_subs = []
-        print("mine")
+        #print("mine")
         if self.strat == 'S':
             debug_logging("Select " + str(self.fpr) + " discrimative subsequences with SQM.")
             miner = PySQM(self.fpr,0.0)
@@ -458,14 +490,14 @@ class MrSQMClassifier:
         debug_logging("Search for subsequences.")        
         mr_seqs = self.transform_time_series(X)
         
+        if True == False:
+            raise Exception(X, mr_seqs, self.sequences)
         
-        
-        for rep in mr_seqs:
+        for rep in tqdm(mr_seqs, desc="mining sequences"):
             mined = self.mine(rep,int_y)
             self.sequences.append(mined)
 
-        if True == True:
-            raise Exception(X, mr_seqs, self.sequences)
+
 
     
         # first computing the feature vectors
