@@ -1,38 +1,20 @@
-.. -*- mode: rst -*-
-
-|Travis|_ |AppVeyor|_ |Codecov|_ |CircleCI|_ |ReadTheDocs|_
-
-.. |Travis| image:: https://travis-ci.org/scikit-learn-contrib/project-template.svg?branch=master
-.. _Travis: https://travis-ci.org/scikit-learn-contrib/project-template
-
-.. |AppVeyor| image:: https://ci.appveyor.com/api/projects/status/coy2qqaqr1rnnt5y/branch/master?svg=true
-.. _AppVeyor: https://ci.appveyor.com/project/glemaitre/project-template
-
-.. |Codecov| image:: https://codecov.io/gh/scikit-learn-contrib/project-template/branch/master/graph/badge.svg
-.. _Codecov: https://codecov.io/gh/scikit-learn-contrib/project-template
-
-.. |CircleCI| image:: https://circleci.com/gh/scikit-learn-contrib/project-template.svg?style=shield&circle-token=:circle-token
-.. _CircleCI: https://circleci.com/gh/scikit-learn-contrib/project-template/tree/master
-
-.. |ReadTheDocs| image:: https://readthedocs.org/projects/sklearn-template/badge/?version=latest
-.. _ReadTheDocs: https://sklearn-template.readthedocs.io/en/latest/?badge=latest
-
-project-template - A template for scikit-learn contributions
+Cri98tj - A "modular" transformer for trajectories data
 ============================================================
 
 .. _scikit-learn: https://scikit-learn.org
 
-**project-template** is a template project for scikit-learn_ compatible
-extensions.
+Cri98tj is a project developed using scikit-learn guidelines. At the end of the development will be made the request for integration in the toolkit.
 
-It aids development of estimators that can be used in scikit-learn pipelines
-and (hyper)parameter search, while facilitating testing (including some API
-compliance), documentation, open source development, packaging, and continuous
-integration.
+The advantages of this transformer lie in the higher speed of computation compared to others such as Movelets or MasterMovelets. Also, unlike black-box like Rocket, the transformations applied to the data can be interpreted by humans.
+
+The basic idea is inspired by shapelets: you try to extract meaningful segments from trajectories and then calculate the best-fitting distance on new trajectories and use the resulting matrix as input to a classifier.
+
+At present the transformer is an order of magnitude faster than movelet and negligibly less accurate than Rocket.
+
+Also in this repository are prototypes of other classifiers with similar ideas:
+ - Modification of algorithms such as MrSQM to convert trajectories into multiple symbol sequences (via sax or geohash), find the most frequent subsequences, and classify the data using the occurrence matrix
+ - Conversion of trajectories into identified symbol sequences using ad-hoc clustering algorithms. Similar to before, we search for the most discriminating symbol sequences and use the occurrence matrix as input to a classifier
 
 .. _documentation: https://sklearn-template.readthedocs.io/en/latest/quick_start.html
 
-Refer to the documentation_ to modify the template for your own scikit-learn
-contribution.
-
-*Thank you for cleanly contributing to the scikit-learn ecosystem!*
+Documentation: not available yet
