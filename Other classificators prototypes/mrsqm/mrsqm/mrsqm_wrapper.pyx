@@ -230,9 +230,9 @@ class MrSQMClassifier:
 
     '''
 
-    def __init__(self, strat = 'RS', features_per_rep = 500, selection_per_rep = 2000, nsax = 1, nsfa = 0, custom_config=None, random_state = None, sfa_norm = True):
-        
+    def __init__(self, callback, strat = 'RS', features_per_rep = 500, selection_per_rep = 2000, nsax = 1, nsfa = 0, custom_config=None, random_state = None, sfa_norm = True):
 
+        self.callback = callback
         self.nsax = nsax
         self.nsfa = nsfa
 
@@ -292,92 +292,7 @@ class MrSQMClassifier:
         debug_logging("Symbolic Parameters: " + str(pars))      
             
         
-        return pars            
-            
-            
-
-    def transform_time_series(self, ts_x):
-        debug_logging("Transform time series to symbolic representations.")
-        
-        multi_tssr = []   
-
-        ts_x_array = from_nested_to_2d_array(ts_x).values
-        
-     
-        if not self.config:
-            self.config = []
-            
-            min_ws = 16
-            min_len = max_len = len(ts_x.iloc[0, 0])
-            for a in ts_x.iloc[:, 0]:
-                min_len = min(min_len, len(a)) 
-                max_len = max(max_len, len(a))
-            max_ws = (min_len + max_len)//2            
-            
-            
-            pars = self.create_pars(min_ws, max_ws, self.nsax, random_sampling=True, is_sfa=False)            
-            for p in pars:
-                self.config.append(
-                        {'method': 'sax', 'window': p[0], 'word': p[1], 'alphabet': p[2], 
-                        # 'dilation': np.int32(2 ** np.random.uniform(0, np.log2((min_len - 1) / (p[0] - 1))))})
-                        'dilation': 1})
-            
-            pars = self.create_pars(min_ws, max_ws, self.nsfa, random_sampling=True, is_sfa=True)            
-            for p in pars:
-                self.config.append(
-                        {'method': 'sfa', 'window': p[0], 'word': p[1], 'alphabet': p[2] , 'normSFA': False, 'normTS': self.sfa_norm
-                        })        
-
-        
-        for cfg in tqdm(self.config, desc="converting to to sax"):
-            for i in range(ts_x.shape[1]):
-                tssr = []
-
-                if cfg['method'] == 'sax':  # convert time series to SAX                    
-                    ps = PySAX(cfg['window'], cfg['word'], cfg['alphabet'], cfg['dilation'])
-                    for ts in ts_x.iloc[:,i]:
-                        sr = ps.timeseries2SAXseq(ts)
-                        tssr.append(sr)
-                elif  cfg['method'] == 'sfa':
-                    if 'signature' not in cfg:
-                        cfg['signature'] = PySFA(cfg['window'], cfg['word'], cfg['alphabet'], cfg['normSFA'], cfg['normTS']).fit(ts_x_array)
-                    
-                    tssr = cfg['signature'].transform(ts_x_array)
-                multi_tssr.append(tssr)
-
-
-        new_multi_tssr = []
-
-        i = 0
-        for conf_lat, conf_lon in tqdm(zip(multi_tssr[0::2], multi_tssr[1::2]), desc="converting to trajectory-sax", total=len(multi_tssr[::2])):
-            i+=1
-            new_tssr = []
-            j=0
-
-            c = b'a'
-            dizionario = {}
-            for k in range(len(conf_lat)): #scorro le varie serie temporali
-                #print(f"{i}-{k}, len={len(conf_lat)} {len(conf_lon)}  len_k={len(conf_lat[k])} {len(conf_lon[k])}")
-                seq = b''
-
-                for sym1, sym2 in zip(conf_lat[k], conf_lon[k]):
-                    j +=1
-
-                    if sym1 == 32:
-                        seq += b' '
-                        continue
-
-                    key = (sym1, sym2)
-                    if key not in dizionario:
-                        #print(f"{i}-{k}) {key} not in dict, generating new symbol {str(c)}->{int.from_bytes(c, byteorder='big')+1}")
-                        c = (int.from_bytes(c, byteorder='big')+1).to_bytes(1, byteorder='big')
-                        dizionario[key] = c
-                    seq += dizionario[key]
-                new_tssr.append(seq)
-            new_multi_tssr.append(new_tssr)
-
-
-        return new_multi_tssr
+        return pars
   
     def sample_random_sequences(self, seqs, min_length, max_length, max_n_seq):  
                 
@@ -398,42 +313,12 @@ class MrSQMClassifier:
         
         return list(output)
 
-    def feature_selection_on_train(self, mr_seqs, y):
-        debug_logging("Compute train data in subsequence space.")
-        full_fm = []
-        self.filters = []
 
-        for i in range(0,len(mr_seqs)):
-        #for rep, seq_features in zip(mr_seqs, self.sequences):            
-            rep = mr_seqs[i]
-            seq_features = self.sequences[i]
-            fm = np.zeros((len(rep), len(seq_features)),dtype = np.int32)
-            ft = PyFeatureTrie(seq_features)
-            for ii,s in enumerate(rep):
-                fm[ii,:] = ft.search(s)            
-            fm = fm > 0 # binary only
-
-            fs = SelectKBest(chi2, k=min(self.fpr, fm.shape[1]))
-            if self.strat == 'RS':
-                debug_logging("Filter subsequences of this representation with chi2 (only with RS).")
-                fm = fs.fit_transform(fm, y)
-                self.sequences[i] = [seq_features[ii] for ii in fs.get_support(indices=True)]               
-
-
-            self.filters.append(fs)
-            full_fm.append(fm)
-
-
-        full_fm = np.hstack(full_fm)
-
-        #self.final_vt = VarianceThreshold()
-        #return self.final_vt.fit_transform(full_fm)
-        return full_fm
 
     def feature_selection_on_test(self, mr_seqs):
         debug_logging("Compute test data in subsequence space.")
         full_fm = []
-        
+
 
         for rep, seq_features, fs in zip(mr_seqs, self.sequences, self.filters):            
             fm = np.zeros((len(rep), len(seq_features)),dtype = np.int32)
@@ -477,7 +362,35 @@ class MrSQMClassifier:
         debug_logging("Found " + str(len(mined_subs)) + " unique subsequences.")
         return mined_subs
 
+    def feature_selection_on_train(self, mr_seqs, y):
+        debug_logging("Compute train data in subsequence space.")
+        full_fm = []
+        self.filters = []
 
+        for i in range(0, len(mr_seqs)):
+            #for rep, seq_features in zip(mr_seqs, self.sequences):
+            rep = mr_seqs[i]
+            seq_features = self.sequences[i]
+            fm = np.zeros((len(rep), len(seq_features)), dtype=np.int32)
+            ft = PyFeatureTrie(seq_features)
+            for ii, s in enumerate(rep):
+                fm[ii, :] = ft.search(s)
+            fm = fm > 0  # binary only
+
+            fs = SelectKBest(chi2, k=min(self.fpr, fm.shape[1]))
+            if self.strat == 'RS':
+                debug_logging("Filter subsequences of this representation with chi2 (only with RS).")
+                fm = fs.fit_transform(fm, y)
+                self.sequences[i] = [seq_features[ii] for ii in fs.get_support(indices=True)]
+
+            self.filters.append(fs)
+            full_fm.append(fm)
+
+        full_fm = np.hstack(full_fm)
+
+        #self.final_vt = VarianceThreshold()
+        #return self.final_vt.fit_transform(full_fm)
+        return full_fm
 
     def fit(self, X, y):
         debug_logging("Fit training data.")
@@ -488,15 +401,16 @@ class MrSQMClassifier:
         self.sequences = []
 
         debug_logging("Search for subsequences.")        
-        mr_seqs = self.transform_time_series(X)
+        old_mr_seqs, mr_seqs = self.callback(self, X)#self.MY_transform_time_series(X)
         
-        if True == False:
-            raise Exception(X, mr_seqs, self.sequences)
+
         
         for rep in tqdm(mr_seqs, desc="mining sequences"):
             mined = self.mine(rep,int_y)
             self.sequences.append(mined)
 
+        #if True == True:
+        #    raise Exception(X, old_mr_seqs, mr_seqs, self.sequences)
 
 
     
@@ -505,6 +419,9 @@ class MrSQMClassifier:
         
         debug_logging("Compute feature vectors.")
         train_x = self.feature_selection_on_train(mr_seqs, int_y)
+
+        self.train_x = train_x
+        self.int_y = int_y
         
         debug_logging("Fit logistic regression model.")
         self.clf = LogisticRegression(solver='newton-cg',multi_class = 'multinomial', class_weight='balanced').fit(train_x, y)        
@@ -515,18 +432,21 @@ class MrSQMClassifier:
 
 
     def predict_proba(self, X): 
-        mr_seqs = self.transform_time_series(X)       
+        old_mr_seqs, mr_seqs = self.callback(self, X)#self.MY_transform_time_series(X)
         test_x = self.feature_selection_on_test(mr_seqs)
+        self.test_x = test_x
         return self.clf.predict_proba(test_x) 
 
     def predict(self, X):
-        mr_seqs = self.transform_time_series(X)       
+        old_mr_seqs, mr_seqs = self.callback(self, X)#self.MY_transform_time_series(X)
         test_x = self.feature_selection_on_test(mr_seqs)
+        self.test_x = test_x
         return self.clf.predict(test_x)
 
     def decision_function(self, X):
-        mr_seqs = self.transform_time_series(X)       
+        old_mr_seqs, mr_seqs = self.callback(self, X)#self.MY_transform_time_series(X)
         test_x = self.feature_selection_on_test(mr_seqs)
+        self.test_x = test_x
         return self.clf.decision_function(test_x)
 
     def get_saliency_map(self, ts):        
