@@ -77,3 +77,6 @@ examples/Taxi Dataset/data/train_denorm_6mesi.zip
 examples/Taxi Dataset/data/train_denorm_6mesi.zip
 examples/Taxi Dataset/data/train_denorm_tutto.zip
 examples/Taxi Dataset/data/train_denorm_6mesi.zip
+*.dbf
+*.shp
+*.shx

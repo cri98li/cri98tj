@@ -9,3 +9,6 @@ pytest>=6.2.4
 tqdm>=4.62.3
 pyclustering>=0.10.1.2
 geolib>=1.0.7
+cri98tj~=0.0.1
+plotly~=5.8.0
+geopandas~=0.9.0
