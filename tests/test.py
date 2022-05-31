@@ -114,24 +114,21 @@ if __name__ == '__main__':
 
 
     #df = pd.read_csv('../examples/Animals Dataset/data/animals_preapred.zip').sort_values(by=["tid", "t"])# precision=5, 50 movelet, DTW
-    #df = pd.read_csv('../examples/Vehicles Dataset/data/vehicles_preapred.zip').sort_values(by=["tid", "t"])
-    df = pd.read_csv('../examples/Taxi Dataset/data/train_denorm_1mese.zip').sort_values(by=["tid", "TIMESTAMP"])
+    df = pd.read_csv('../examples/Vehicles Dataset/data/vehicles_preapred.zip').sort_values(by=["tid", "t"])
+    #df = pd.read_csv('../examples/Taxi Dataset/data/train_denorm_1mese.zip').sort_values(by=["tid", "TIMESTAMP"])
 
     start = time.time()
 
-    df = df[["tid", "day_of_week", "lat", "lon", "TIMESTAMP"]].rename(columns={"day_of_week": "class", "lat": "c1", "lon": "c2", "TIMESTAMP": "t"})
+    #df = df[["tid", "day_of_week", "lat", "lon", "TIMESTAMP"]].rename(columns={"day_of_week": "class", "lat": "c1", "lon": "c2", "TIMESTAMP": "t"})
 
+    df["c1"] = df.c1 / 100000
+    df["c2"] = df.c2 / 100000
     df = df[["tid", "class", "c1", "c2", "t"]]
 
     #df["c1"] = df.c1/100000
     #df["c2"] = df.c2/100000
 
 
-
-    perc = 1
-    df.tid -= df.tid.min()
-    max_tid = df.tid.max()
-    df = df[df.tid < max_tid*perc]
 
     spatioTemporalCols = ["c1", "c2", "t"]
 
@@ -149,19 +146,20 @@ if __name__ == '__main__':
     normalizer = FirstPoint_normalizer(spatioTemporalColumns=spatioTemporalCols, fillna=None)
 
 
-    #selector = Random_selector(movelets_per_class=2, normalizer=normalizer)
+    selector = Random_selector(movelets_per_class=10, normalizer=normalizer,
+                               spatioTemporalColumns=spatioTemporalCols)
     #selector = RandomOrderline_selector(top_k=50, movelets_per_class=None, trajectories_for_orderline=50, n_jobs=10, spatioTemporalColumns=spatioTemporalCols, normalizer=normalizer)
     #TODO: left pure troppo restrittiva (tutte le distanze sono = 0)
 
-    selector = RandomInformationGain_selector(top_k=20, bestFittingMeasure=InterpolatedRootDistanceBestFitting, movelets_per_class=100, trajectories_for_orderline=50, n_jobs=10, spatioTemporalColumns=spatioTemporalCols, normalizer=normalizer)
+    #selector = RandomInformationGain_selector(top_k=20, bestFittingMeasure=InterpolatedRootDistanceBestFitting, movelets_per_class=100, trajectories_for_orderline=50, n_jobs=10, spatioTemporalColumns=spatioTemporalCols, normalizer=normalizer)
 
     shapelets = selector.fit_transform(part)
 
-    print_movelets(shapelets, spatioTemporalCols)
+    #print_movelets(shapelets, spatioTemporalCols)
 
     #distancer = Euclidean_distancer(normalizer=normalizer, spatioTemporalColumns=spatioTemporalCols, n_jobs=4)
     #distancer = DTW_distancer(normalizer=normalizer, spatioTemporalColumns=spatioTemporalCols, n_jobs=12)
-    distancer = InterpolatedRootDistance_distancer(normalizer=normalizer, spatioTemporalColumns=spatioTemporalCols, n_jobs=10)
+    distancer = InterpolatedRootDistance_distancer(normalizer=normalizer, spatioTemporalColumns=spatioTemporalCols, n_jobs=24)
 
     #dist_np = TrajectoryTransformer(partitioner=partitioner, selector=selector, distancer=distancer).fit_transform(df.values)
 
@@ -175,9 +173,9 @@ if __name__ == '__main__':
     df_pivot = dataframe_pivot(df=df, maxLen=None, verbose=False, fillna_value=None,
                                columns=spatioTemporalCols)
 
-    for i in range(min(5, len(df_pivot))):
-        print_movelets_in_traj(df_pivot.values[i][1:], best_is[:][i], shapelets, spatioTemporalCols)
-        time.sleep(2)
+    #for i in range(min(5, len(df_pivot))):
+    #    print_movelets_in_traj(df_pivot.values[i][1:], best_is[:][i], shapelets, spatioTemporalCols)
+    #    time.sleep(2)
 
 
     clf = RandomForestClassifier(max_depth=2, random_state=3, n_jobs=10, n_estimators=1000)

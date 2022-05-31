@@ -94,7 +94,7 @@ class RandomInformationGain_selector(SelectorInterface):
         for movelet in tqdm(movelets_to_test, disable=not self.verbose, position=0, leave=True):
             processes.append(executor.submit(self._computeDist, trajectories_for_orderline, movelet))
 
-        for i, process in enumerate(tqdm(processes)):
+        for i, process in enumerate(tqdm(processes, disable=not self.verbose, position=0, leave=True)):
             res = process.result()
             for j, el in enumerate(res):
                 dist_matrix[j][i] = el
