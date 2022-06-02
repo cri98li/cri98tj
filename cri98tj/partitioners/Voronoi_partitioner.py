@@ -67,7 +67,17 @@ class Voronoi_partitioner(PartitionerInterface):
 
         self.__OCTO_clear()
 
-        return map_tdf.values
+        prec = ()
+        c = -1
+        returnValue = map_tdf.values
+        for row in returnValue:
+            key = (row[0], row[5])
+            if prec != key:
+                prec = key
+                c += 1
+            row[5] = str(row[5])+ "_"+ str(c)
+
+        return returnValue
 
 
     def __to_OCTO(self, df_original):
