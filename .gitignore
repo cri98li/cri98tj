@@ -82,3 +82,4 @@ examples/Taxi Dataset/data/train_denorm_6mesi.zip
 *.shx
 examples/Taxi Dataset/data/train.csv
 examples/Taxi Dataset/data/train_denorm_3M.zip
+*.r2
