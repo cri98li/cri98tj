@@ -25,11 +25,11 @@ def dataframe_pivot(df, maxLen, verbose, fillna_value, columns):
 
     #righe: tid; colonne: partId, class, altre
     max = df.pos.max()+1
-    new_matrix = np.ones((len(df.partId.unique()), max*len(columns)))*np.NAN
+    new_matrix = np.ones((len(df.partId.unique()), int(max*len(columns))))*np.NAN
     classes = []
     partIds = []
 
-    for row in tqdm(df.values):
+    for row in tqdm(df.values, disable=not verbose, position=0, leave=True):
         curr_partID = row[df.columns.tolist().index("partId")]
         classe = row[df.columns.tolist().index("class")]
         if prec_partID != curr_partID:

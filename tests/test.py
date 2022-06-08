@@ -157,7 +157,7 @@ if __name__ == '__main__':
         #TODO: left pure troppo restrittiva (tutte le distanze sono = 0)
 
         selector = RandomInformationGain_selector(top_k=20, bestFittingMeasure=InterpolatedRootDistanceBestFitting,
-                                                  movelets_per_class=None, trajectories_for_orderline=None, n_jobs=20,
+                                                  movelets_per_class=None, trajectories_for_orderline=None, n_jobs=10,
                                                   spatioTemporalColumns=spatioTemporalCols, normalizer=normalizer)
 
         shapelets = selector.fit_transform(part)
@@ -166,7 +166,7 @@ if __name__ == '__main__':
 
         #distancer = Euclidean_distancer(normalizer=normalizer, spatioTemporalColumns=spatioTemporalCols, n_jobs=4)
         #distancer = DTW_distancer(normalizer=normalizer, spatioTemporalColumns=spatioTemporalCols, n_jobs=12)
-        distancer = InterpolatedRootDistance_distancer(normalizer=normalizer, spatioTemporalColumns=spatioTemporalCols, n_jobs=20)
+        distancer = InterpolatedRootDistance_distancer(normalizer=normalizer, spatioTemporalColumns=spatioTemporalCols, n_jobs=10)
 
         #dist_np = TrajectoryTransformer(partitioner=partitioner, selector=selector, distancer=distancer).fit_transform(df.values)
 
