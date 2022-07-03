@@ -7,13 +7,13 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
 from cri98tj.distancers.Euclidean_distancer import Euclidean_distancer
-from cri98tj.distancers.DTW_distancer import DTW_distancer
+from cri98tj.distancers.DTW_distancer import DTW_distancer, DTWBestFitting
 from cri98tj.distancers.InterpolatedRootDistance_distancer import InterpolatedRootDistance_distancer, \
     InterpolatedRootDistanceBestFitting
 from cri98tj.normalizers.FirstPoint_normalizer import FirstPoint_normalizer
 from cri98tj.normalizers.normalizer_utils import dataframe_pivot
 from cri98tj.partitioners.Geohash_partitioner import Geohash_partitioner
-from cri98tj.partitioners.Voronoi_partitioner import Voronoi_partitioner
+#from cri98tj.partitioners.Voronoi_partitioner import Voronoi_partitioner
 from cri98tj.selectors.RandomInformationGain_selector import RandomInformationGain_selector
 from cri98tj.selectors.Random_selector import Random_selector
 from cri98tj.selectors.RandomOrderline_selector import RandomOrderline_selector
@@ -126,14 +126,14 @@ if __name__ == '__main__':
 
         #df["c1"] = df.c1 / 100000
         #df["c2"] = df.c2 / 100000
-        df = df[["tid", "class", "c1", "c2", "t"]]
+        df = df[["tid", "class", "c1", "c2"]]
 
         #df["c1"] = df.c1/100000
         #df["c2"] = df.c2/100000
 
 
 
-        spatioTemporalCols = ["c1", "c2", "t"]
+        spatioTemporalCols = ["c1", "c2"]
 
         tid_train, tid_test, _, _ = train_test_split(df.groupby(by=["tid"]).max().reset_index()["tid"],
                                                             df.groupby(by=["tid"]).max().reset_index()["class"],
@@ -142,9 +142,9 @@ if __name__ == '__main__':
                                                             random_state=3)
 
 
-        #partitioner = Geohash_partitioner(precision=6, spatioTemporalColumns=spatioTemporalCols)
+        partitioner = Geohash_partitioner(precision=6, spatioTemporalColumns=spatioTemporalCols)
 
-        partitioner = Voronoi_partitioner(spatioTemporalColumns=spatioTemporalCols, radius=r, stop_distance=sd, stop_seconds=ss)
+        #partitioner = Voronoi_partitioner(spatioTemporalColumns=spatioTemporalCols, radius=r, stop_distance=sd, stop_seconds=ss)
 
         part = partitioner.fit_transform(df[df.tid.isin(tid_train)].values)
 
@@ -156,7 +156,7 @@ if __name__ == '__main__':
         #selector = RandomOrderline_selector(top_k=50, movelets_per_class=None, trajectories_for_orderline=50, n_jobs=10, spatioTemporalColumns=spatioTemporalCols, normalizer=normalizer)
         #TODO: left pure troppo restrittiva (tutte le distanze sono = 0)
 
-        selector = RandomInformationGain_selector(top_k=20, bestFittingMeasure=InterpolatedRootDistanceBestFitting,
+        selector = RandomInformationGain_selector(top_k=20, bestFittingMeasure=DTWBestFitting,
                                                   movelets_per_class=None, trajectories_for_orderline=None, n_jobs=10,
                                                   spatioTemporalColumns=spatioTemporalCols, normalizer=normalizer)
 
@@ -165,13 +165,13 @@ if __name__ == '__main__':
         #print_movelets(shapelets, spatioTemporalCols)
 
         #distancer = Euclidean_distancer(normalizer=normalizer, spatioTemporalColumns=spatioTemporalCols, n_jobs=4)
-        #distancer = DTW_distancer(normalizer=normalizer, spatioTemporalColumns=spatioTemporalCols, n_jobs=12)
-        distancer = InterpolatedRootDistance_distancer(normalizer=normalizer, spatioTemporalColumns=spatioTemporalCols, n_jobs=10)
+        distancer = DTW_distancer(normalizer=normalizer, spatioTemporalColumns=spatioTemporalCols, n_jobs=12)
+        #distancer = InterpolatedRootDistance_distancer(normalizer=normalizer, spatioTemporalColumns=spatioTemporalCols, n_jobs=10)
 
         #dist_np = TrajectoryTransformer(partitioner=partitioner, selector=selector, distancer=distancer).fit_transform(df.values)
 
 
-        best_is, dist_np = distancer.fit_transform((df.values, shapelets))
+        dist_np = distancer.fit_transform((df.values, shapelets))
 
         df2 = df
 

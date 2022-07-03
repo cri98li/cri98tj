@@ -1,4 +1,6 @@
 from concurrent.futures import ProcessPoolExecutor
+import math
+from math import sqrt
 
 import numpy as np
 import pandas as pd
@@ -63,7 +65,7 @@ class DTW_distancer(DistancerInterface):
         return distances
 
 
-def DTWBestFitting(trajectory, movelet, spatioTemporalColumns, window=None, normalizer=NormalizerInterface()):  # nan == end
+def DTWBestFitting(trajectory, movelet, spatioTemporalColumns, window=5, normalizer=NormalizerInterface()):  # nan == end
     if len(trajectory) % len(spatioTemporalColumns) != 0:
         raise Exception(f"la lunghezza della traiettoria deve essere divisivile per {len(spatioTemporalColumns)}")
     if len(movelet) % len(spatioTemporalColumns) != 0:
@@ -94,12 +96,46 @@ def DTWBestFitting(trajectory, movelet, spatioTemporalColumns, window=None, norm
         trajectory_dict[i] = normalizer._transformSingleTraj(trajectory[i * offset_trajectory:(i * offset_trajectory) + len_t])
         movelet_dict[i] = normalizer._transformSingleTraj(movelet[i * offset_movelet:(i * offset_movelet) + len_mov])
 
-    returned = _DTWBestFitting(trajectory=trajectory_dict, movelet=movelet_dict, spatioTemporalColumns=spatioTemporalColumns, window=window)
 
-    return None, returned
+    bestScore = math.inf
+    best_i = -1
+    for i in range(max(len_t - len_mov - window, 0) + 1):
+        trajectory_dict_cut = dict()
+        for j, col in enumerate(spatioTemporalColumns):
+            trajectory_dict_cut[j] = normalizer._transformSingleTraj(trajectory_dict[j][i:i + len_mov + window])
+        returned = _DTWBestFitting(trajectory_dict_cut, movelet_dict, spatioTemporalColumns)
+        if returned is not None and returned < bestScore:
+            bestScore = returned
+            best_i = i
+
+    return best_i, bestScore
+
+def _dist(c1_a, c2_a, c1_b, c2_b):
+    return sqrt( (c1_a - c1_b)**2 + (c2_a-c2_b)**2 )
+
+def _DTWBestFitting(trajectory, movelet, spatioTemporalColumns):
+    spatioTemporalColumns = [x for x in spatioTemporalColumns if x not in ["t", "time", "timestamp", "TIMESTAMP"]]
+
+    n, m = len(movelet[0]), len(trajectory[0])
+    matrix = [[(None, None) for _ in range(m + 1)] for _ in range(n + 1)]  # (n, value)
+
+    matrix[0][0] = (0, 0)
+    matrix[0][1:] = [(1, float("inf")) for _ in matrix[0][1:]]
+    for row in matrix[1:]:
+        row[0] = (1, float("inf"))
+
+    for i in range(1, len(matrix)):
+        for j in range(1, len(matrix[i])):
+            n_min, val_min = sorted([matrix[i - 1][j], matrix[i][j - 1], matrix[i - 1][j - 1]], key=lambda x: 0 if x[0] == 0 else x[1] / x[0])[0]
+
+            d = _dist(movelet[0][i - 1], movelet[1][i - 1], trajectory[0][j - 1], trajectory[1][j - 1])
+
+            matrix[i][j] = (n_min + 1, d + val_min)
+
+    return matrix[-1][-1][1] / matrix[-1][-1][0]
 
 
-def _DTWBestFitting(trajectory, movelet, spatioTemporalColumns, window=None):
+"""def _DTWBestFitting(trajectory, movelet, spatioTemporalColumns, window=None):
     spatioTemporalColumns = [x for x in spatioTemporalColumns if x not in ["t", "time", "timestamp", "TIMESTAMP"]]
 
     n, m = len(movelet[0]), len(trajectory[0])
@@ -125,3 +161,4 @@ def _DTWBestFitting(trajectory, movelet, spatioTemporalColumns, window=None):
             last_min = np.min([dtw_matrix[i - 1, j], dtw_matrix[i, j - 1], dtw_matrix[i - 1, j - 1]])
             dtw_matrix[i, j] = cost + last_min
     return dtw_matrix[n, m]
+"""
