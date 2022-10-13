@@ -6,9 +6,10 @@ import pandas as pd
 from cri98tj.distancers.Euclidean_distancer import euclideanBestFitting
 from cri98tj.normalizers.NormalizerInterface import NormalizerInterface
 
-def select_and_pivot(df, n_per_class, normalizer):
+def select_and_pivot(df, n_per_class, normalizer, random_seed=32):
     n_per_class = int(n_per_class)
     selected_tid = []
+    random.seed(random_seed)
     for classe in df["class"].unique():
         df_tmp = df[df["class"] == classe]
         selected_tid += random.sample(df_tmp.partId.unique().tolist(), k=min(len(df_tmp.partId.unique()), n_per_class))
