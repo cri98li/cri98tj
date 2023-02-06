@@ -1,7 +1,4 @@
-if (Geolet #0 <= 32.113) and (Geolet #1 <= 46.31) and (Geolet #7 <= 88.616) then class: Truck (proba: 99.4%) | based on 168 samples
-if (Geolet #0 > 32.113) and (Geolet #6 <= 72.625) then class: Bus (proba: 100.0%) | based on 47 samples
-if (Geolet #0 <= 32.113) and (Geolet #1 > 46.31) and (Geolet #6 > 55.708) then class: Truck (proba: 70.0%) | based on 20 samples
-if (Geolet #0 > 32.113) and (Geolet #6 > 72.625) and (Geolet #8 <= 80.913) then class: Bus (proba: 81.82%) | based on 11 samples
-if (Geolet #0 <= 32.113) and (Geolet #1 > 46.31) and (Geolet #6 <= 55.708) then class: Bus (proba: 90.0%) | based on 10 samples
-if (Geolet #0 > 32.113) and (Geolet #6 > 72.625) and (Geolet #8 > 80.913) then class: Truck (proba: 85.71%) | based on 7 samples
-if (Geolet #0 <= 32.113) and (Geolet #1 <= 46.31) and (Geolet #7 > 88.616) then class: Bus (proba: 66.67%) | based on 3 samples
+if (Geolet #4 > 406.262) and (Geolet #6 > 155.641) then class: Truck (proba: 93.57%) | based on 171 samples
+if (Geolet #4 <= 406.262) and (Geolet #0 <= 313.642) then class: Bus (proba: 85.45%) | based on 55 samples
+if (Geolet #4 <= 406.262) and (Geolet #0 > 313.642) then class: Truck (proba: 74.19%) | based on 31 samples
+if (Geolet #4 > 406.262) and (Geolet #6 <= 155.641) then class: Bus (proba: 100.0%) | based on 9 samples
